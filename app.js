@@ -323,6 +323,8 @@ async function entrar(user) {
   pintarIdentidad();
   suscribir();
   render();
+
+  if (S.perfil && S.perfil.debe_cambiar_password) modalCambioObligatorio();
 }
 
 function pintarIdentidad() {
@@ -937,24 +939,123 @@ function vistaMetricas() {
    Modales
    ============================================================ */
 
-function abrirModal(titulo, cuerpo, pie) {
+function abrirModal(titulo, cuerpo, pie, bloqueante) {
   $('#modal-root').innerHTML =
-    '<div class="modal" id="modal">' +
+    '<div class="modal' + (bloqueante ? ' bloqueante' : '') + '" id="modal">' +
       '<div class="modal-card">' +
-        '<div class="modal-head"><h3>' + esc(titulo) + '</h3><button class="x" id="modal-x">×</button></div>' +
+        '<div class="modal-head"><h3>' + esc(titulo) + '</h3>' +
+          (bloqueante ? '' : '<button class="x" id="modal-x">×</button>') +
+        '</div>' +
         '<div class="modal-body">' + cuerpo + '</div>' +
         '<div class="modal-foot">' + pie + '</div>' +
       '</div>' +
     '</div>';
   const modal = $('#modal');
-  $('#modal-x').addEventListener('click', cerrarModal);
-  modal.addEventListener('mousedown', ev => { if (ev.target === modal) cerrarModal(); });
+  if (!bloqueante) {
+    $('#modal-x').addEventListener('click', cerrarModal);
+    modal.addEventListener('mousedown', ev => { if (ev.target === modal) cerrarModal(); });
+  }
   return modal;
 }
 
-function cerrarModal() { $('#modal-root').innerHTML = ''; }
+function cerrarModal() {
+  const m = $('#modal');
+  if (m && m.classList.contains('bloqueante')) return;
+  $('#modal-root').innerHTML = '';
+}
 
 document.addEventListener('keydown', ev => { if (ev.key === 'Escape') cerrarModal(); });
+
+/* ---------- Cuenta: nombre y contraseña ---------- */
+
+function camposPassword(idA, idB) {
+  return '<div class="field"><label for="' + idA + '">Contraseña nueva</label>' +
+      '<input id="' + idA + '" type="password" autocomplete="new-password" placeholder="Mínimo 8 caracteres"></div>' +
+    '<div class="field"><label for="' + idB + '">Repite la contraseña</label>' +
+      '<input id="' + idB + '" type="password" autocomplete="new-password" placeholder="La misma de arriba"></div>';
+}
+
+async function cambiarPassword(idA, idB, extra) {
+  const a = $(idA).value;
+  const b = $(idB).value;
+  if (a.length < 8) { toast('La contraseña necesita al menos 8 caracteres.', true); return false; }
+  if (a !== b) { toast('Las dos contraseñas no coinciden.', true); return false; }
+
+  const { error } = await sb.auth.updateUser({ password: a });
+  if (error) { toast(error.message, true); return false; }
+
+  const fila = Object.assign({ debe_cambiar_password: false }, extra || {});
+  const { error: e2 } = await sb.from('perfiles').update(fila).eq('id', S.user.id);
+  if (e2) { toast(e2.message, true); return false; }
+
+  await cargarTodo();
+  pintarIdentidad();
+  return true;
+}
+
+function modalCambioObligatorio() {
+  const nombre = (S.perfil && S.perfil.nombre) || (S.user.email || '').split('@')[0];
+  const cuerpo =
+    '<p class="lead">Entraste con una contraseña temporal. Elige la tuya para continuar; ' +
+    'nadie más la conoce, ni siquiera quien te dio de alta.</p>' +
+    campoTexto('f-nombre', 'Tu nombre', nombre, 'text', 'Como quieres aparecer en el hub') +
+    camposPassword('f-pass1', 'f-pass2');
+
+  abrirModal('Cambia tu contraseña', cuerpo,
+    '<button class="btn btn-primary" id="m-save">Guardar y entrar</button>', true);
+
+  $('#m-save').addEventListener('click', async () => {
+    const btn = $('#m-save');
+    btn.disabled = true;
+    const ok = await cambiarPassword('#f-pass1', '#f-pass2',
+      { nombre: $('#f-nombre').value.trim() || nombre });
+    btn.disabled = false;
+    if (ok) {
+      $('#modal').classList.remove('bloqueante');
+      cerrarModal();
+      render();
+      toast('Listo, tu contraseña quedó guardada');
+    }
+  });
+}
+
+function modalCuenta() {
+  const nombre = (S.perfil && S.perfil.nombre) || '';
+  const cuerpo =
+    '<p class="lead">' + esc(S.user.email) + '</p>' +
+    campoTexto('f-nombre', 'Nombre', nombre, 'text', 'Como apareces en el hub') +
+    '<div class="field"><label>Contraseña</label>' +
+      '<div class="hint" style="margin:0">Déjala en blanco si solo quieres cambiar tu nombre.</div></div>' +
+    camposPassword('f-pass1', 'f-pass2');
+
+  abrirModal('Mi cuenta', cuerpo,
+    '<button class="btn btn-ghost" id="m-cancel">Cancelar</button>' +
+    '<button class="btn btn-primary" id="m-save">Guardar</button>');
+
+  $('#m-cancel').addEventListener('click', cerrarModal);
+
+  $('#m-save').addEventListener('click', async () => {
+    const btn = $('#m-save');
+    const nuevo = $('#f-nombre').value.trim();
+    btn.disabled = true;
+
+    if ($('#f-pass1').value || $('#f-pass2').value) {
+      const ok = await cambiarPassword('#f-pass1', '#f-pass2', nuevo ? { nombre: nuevo } : {});
+      btn.disabled = false;
+      if (ok) { cerrarModal(); render(); toast('Cuenta actualizada'); }
+      return;
+    }
+
+    const { error } = await sb.from('perfiles').update({ nombre: nuevo }).eq('id', S.user.id);
+    btn.disabled = false;
+    if (error) { toast(error.message, true); return; }
+    await cargarTodo();
+    pintarIdentidad();
+    cerrarModal();
+    render();
+    toast('Nombre actualizado');
+  });
+}
 
 function campoTexto(id, etiqueta, valor, tipo, ph) {
   return '<div class="field"><label for="' + id + '">' + esc(etiqueta) + '</label>' +
@@ -1252,6 +1353,9 @@ async function editarMeta(plataforma) {
 }
 
 document.addEventListener('click', ev => {
+  const cuenta = ev.target.closest('[data-cuenta]');
+  if (cuenta && !ev.target.closest('.modal')) { modalCuenta(); return; }
+
   const meta = ev.target.closest('[data-meta]');
   if (meta) { editarMeta(meta.dataset.meta); return; }
 

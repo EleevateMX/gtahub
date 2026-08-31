@@ -95,12 +95,13 @@
     <nav class="nav" id="nav"></nav>
 
     <div class="side-foot">
-      <div class="who">
+      <div class="who" data-cuenta title="Mi cuenta: nombre y contraseña">
         <div class="avatar" id="me-avatar">?</div>
         <div class="meta">
           <b id="me-name">—</b>
           <small id="me-role">—</small>
         </div>
+        <span class="who-edit">✎</span>
       </div>
       <button class="btn btn-ghost btn-block btn-sm" id="logout">Cerrar sesión</button>
     </div>
@@ -110,7 +111,8 @@
     <div class="mobile-head">
       <img class="logo-img" src="icons/icon-192.png" alt="GTAHUB">
       <div class="name">GTA<span>HUB</span></div>
-      <button class="btn btn-ghost btn-sm out" id="logout-m">Salir</button>
+      <button class="btn btn-ghost btn-sm out" data-cuenta>Cuenta</button>
+      <button class="btn btn-ghost btn-sm" id="logout-m">Salir</button>
     </div>
     <div class="seg seg-m" id="seg-m"></div>
     <div id="view"></div>

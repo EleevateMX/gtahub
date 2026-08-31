@@ -13,8 +13,16 @@ create table if not exists public.perfiles (
   id         uuid primary key references auth.users (id) on delete cascade,
   nombre     text not null default '',
   rol        text not null default 'Equipo',
+  debe_cambiar_password boolean not null default true,
   created_at timestamptz not null default now()
 );
+
+-- Por si la tabla ya existia sin la columna
+alter table public.perfiles
+  add column if not exists debe_cambiar_password boolean not null default true;
+
+comment on column public.perfiles.debe_cambiar_password is
+  'true = el hub obliga a cambiar la contrasena temporal al entrar. Se apaga solo al cambiarla.';
 
 comment on table public.perfiles is
   'Quien puede entrar al hub. Se crea sola al dar de alta el usuario en Authentication.';

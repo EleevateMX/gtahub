@@ -238,7 +238,15 @@ input::placeholder, textarea::placeholder { color: rgba(255, 255, 255, .28); }
 }
 
 .side-foot { margin-top: auto; border-top: 1px solid var(--border); padding-top: 16px; }
-.who { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.who {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
+  padding: 6px; margin-left: -6px; margin-right: -6px;
+  border-radius: 9px; cursor: pointer;
+  transition: background .15s ease;
+}
+.who:hover { background: var(--panel); }
+.who-edit { margin-left: auto; color: var(--text-3); font-size: 13px; }
+.who:hover .who-edit { color: var(--crimson); }
 .avatar {
   width: 32px; height: 32px; border-radius: 50%;
   background: var(--crimson); color: #fff;
@@ -448,7 +456,9 @@ table.data td.num { text-align: right; font-variant-numeric: tabular-nums; }
   font-size: 22px; line-height: 1; cursor: pointer; padding: 0 4px;
 }
 .modal-head .x:hover { color: #fff; }
+.modal.bloqueante { background: rgba(0, 0, 0, .9); }
 .modal-body { padding: 22px; }
+.modal-body .lead { margin: 0 0 18px; font-size: 13.5px; line-height: 21px; color: var(--text-2); }
 .modal-foot {
   position: sticky; bottom: 0;
   background: var(--card); border-top: 1px solid var(--border);
@@ -524,6 +534,7 @@ table.data td.num { text-align: right; font-variant-numeric: tabular-nums; }
   .mobile-head .name { font-family: var(--display); font-size: 15px; }
   .mobile-head .name span { color: var(--crimson); }
   .mobile-head .out { margin-left: auto; }
+  .mobile-head .btn-sm { padding: 6px 10px; font-size: 11px; }
   .topbar h1 { font-size: 24px; line-height: 28px; }
   .g-4, .g-3, .g-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .kanban { grid-template-columns: 1fr; }

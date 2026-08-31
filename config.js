@@ -11,6 +11,6 @@
  * y los guarda en el navegador (útil para probar antes de fijarlos aquí).
  */
 window.GTAHUB_CONFIG = {
-  SUPABASE_URL: "", // ← pega aquí la Project URL, ej. "https://xxxxxxxx.supabase.co"
+  SUPABASE_URL: "https://scaackprrtebqkfrowba.supabase.co",
   SUPABASE_ANON_KEY: "sb_publishable_4bo-HL4KOmINZZCQs8cfhw_iqFClE_A"
 };

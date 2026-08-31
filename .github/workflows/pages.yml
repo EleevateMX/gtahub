@@ -1,0 +1,29 @@
+# Publica el sitio estatico en la rama gh-pages con cada push.
+# GitHub Pages sirve esa rama en https://eleevatemx.github.io/gtahub/
+name: Desplegar en GitHub Pages
+
+on:
+  push:
+    branches: [claude/gtahub-dashboard-vercel-ro68wg, main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Publicar en gh-pages
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan gh-pages
+          git add -A
+          git commit -m "Deploy ${GITHUB_SHA::7}"
+          git push -f origin gh-pages

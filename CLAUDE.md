@@ -88,7 +88,21 @@ Paleta por plataforma (validada, no cambiarla):
   (`esp|pe|ambas`, default `esp`).
 
 RLS: el rol anónimo no ve nada; `authenticated` lee y escribe todo. Los usuarios
-se dan de alta en Supabase → Authentication → Users.
+se dan de alta en Supabase → Authentication → Users con el correo
+`<usuario>@gtahub.gg`.
+
+## Acceso
+
+- Se entra con **usuario o correo**: `correoDe()` le pega `@gtahub.gg`
+  (constante `DOMINIO`) a lo que no traiga arroba. Supabase Auth siempre
+  recibe un correo.
+- `perfiles.debe_cambiar_password` (default `true`) hace que el primer ingreso
+  abra un modal **bloqueante** (`modalCambioObligatorio`) que pide contraseña
+  propia y nombre. `modalCuenta` permite cambiarlos después.
+- Las contraseñas se cambian con `auth.updateUser`; **nunca** se guardan en
+  tablas ni en el repo. `supabase/usuarios.sql` solo lleva nombres y roles.
+- El rol se pinta con distintivo: `claseRol()` → `role-ceo` (ámbar),
+  `role-dir` (crimson), `role-inv` (gris).
 
 ## Convenciones de código
 

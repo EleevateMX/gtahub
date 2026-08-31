@@ -97,6 +97,14 @@ create table if not exists public.publicaciones (
   updated_at        timestamptz not null default now()
 );
 
+-- Por si la tabla ya existia sin la columna (base creada antes de las secciones)
+alter table public.publicaciones add column if not exists seccion text not null default 'esp';
+do $$ begin
+  alter table public.publicaciones
+    add constraint publicaciones_seccion_check check (seccion in ('esp', 'pe', 'ambas'));
+exception when duplicate_object then null;
+end $$;
+
 comment on column public.publicaciones.plataformas is
   'Arreglo de: instagram, tiktok, discord, email, facebook. El mismo id que usa el dashboard.';
 
@@ -131,6 +139,13 @@ create table if not exists public.pendientes (
   updated_at    timestamptz not null default now()
 );
 
+alter table public.pendientes add column if not exists seccion text not null default 'esp';
+do $$ begin
+  alter table public.pendientes
+    add constraint pendientes_seccion_check check (seccion in ('esp', 'pe', 'ambas'));
+exception when duplicate_object then null;
+end $$;
+
 create index if not exists ix_pen_estado on public.pendientes (estado, orden);
 
 drop trigger if exists tr_pen_touch on public.pendientes;
@@ -158,6 +173,13 @@ create table if not exists public.ideas (
   updated_at   timestamptz not null default now()
 );
 
+alter table public.ideas add column if not exists seccion text not null default 'esp';
+do $$ begin
+  alter table public.ideas
+    add constraint ideas_seccion_check check (seccion in ('esp', 'pe', 'ambas'));
+exception when duplicate_object then null;
+end $$;
+
 drop trigger if exists tr_ideas_touch on public.ideas;
 create trigger tr_ideas_touch before update on public.ideas
   for each row execute function public.fn_touch();
@@ -180,6 +202,13 @@ create table if not exists public.tendencias (
   tags        text[] not null default '{}',
   created_at  timestamptz not null default now()
 );
+
+alter table public.tendencias add column if not exists seccion text not null default 'ambas';
+do $$ begin
+  alter table public.tendencias
+    add constraint tendencias_seccion_check check (seccion in ('esp', 'pe', 'ambas'));
+exception when duplicate_object then null;
+end $$;
 
 create index if not exists ix_ten_periodo on public.tendencias (periodo desc);
 
@@ -205,14 +234,6 @@ from (values ('tiktok', 7), ('instagram', 5), ('facebook', 3), ('discord', 2), (
   as p (plataforma, meta)
 cross join (values ('esp'), ('pe')) as x (s)
 on conflict (seccion, plataforma) do nothing;
-
--- ------------------------------------------------------------
--- Migracion defensiva: agrega 'seccion' si la base ya existia
--- ------------------------------------------------------------
-alter table public.publicaciones add column if not exists seccion text not null default 'esp';
-alter table public.pendientes    add column if not exists seccion text not null default 'esp';
-alter table public.ideas         add column if not exists seccion text not null default 'esp';
-alter table public.tendencias    add column if not exists seccion text not null default 'ambas';
 
 -- ------------------------------------------------------------
 -- RLS: nadie anonimo ve nada. Quien inicio sesion, trabaja.

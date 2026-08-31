@@ -206,6 +206,21 @@ function pills(ids) {
    Arranque
    ============================================================ */
 
+/* El equipo entra con su usuario (kevinagre) o con su correo completo.
+   Supabase Auth siempre necesita un correo, asi que el usuario suelto se
+   completa con el dominio interno. */
+const DOMINIO = 'gtahub.gg';
+
+function correoDe(valor) {
+  const v = String(valor || '').trim().toLowerCase();
+  if (!v) return '';
+  return v.includes('@') ? v : v.replace(/\s+/g, '') + '@' + DOMINIO;
+}
+
+function usuarioDe(correo) {
+  return String(correo || '').split('@')[0];
+}
+
 const LS_URL = 'gtahub.supabase.url';
 const LS_KEY = 'gtahub.supabase.key';
 
@@ -283,8 +298,17 @@ $('#login-form').addEventListener('submit', async ev => {
   btn.disabled = true;
   btn.textContent = 'Entrando…';
 
+  const correo = correoDe($('#lg-email').value);
+  if (!correo || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(correo)) {
+    msg.className = 'msg error';
+    msg.textContent = 'Escribe tu usuario (ej. kevinagre) o tu correo completo.';
+    btn.disabled = false;
+    btn.textContent = 'Entrar';
+    return;
+  }
+
   const { data, error } = await sb.auth.signInWithPassword({
-    email: $('#lg-email').value.trim(),
+    email: correo,
     password: $('#lg-pass').value
   });
 
@@ -294,7 +318,7 @@ $('#login-form').addEventListener('submit', async ev => {
   if (error) {
     msg.className = 'msg error';
     msg.textContent = error.message === 'Invalid login credentials'
-      ? 'Correo o contraseña incorrectos.'
+      ? 'Usuario o contraseña incorrectos.'
       : error.message;
     return;
   }
@@ -327,11 +351,19 @@ async function entrar(user) {
   if (S.perfil && S.perfil.debe_cambiar_password) modalCambioObligatorio();
 }
 
+function claseRol(rol) {
+  const r = String(rol || '').toLowerCase();
+  if (r.includes('ceo') || r.includes('dueñ') || r.includes('duen')) return 'role-ceo';
+  if (r.includes('direc')) return 'role-dir';
+  return 'role-inv';
+}
+
 function pintarIdentidad() {
-  const nombre = (S.perfil && S.perfil.nombre) || (S.user.email || '').split('@')[0];
+  const nombre = (S.perfil && S.perfil.nombre) || usuarioDe(S.user.email);
   const rol = (S.perfil && S.perfil.rol) || 'Equipo';
   $('#me-name').textContent = nombre;
   $('#me-role').textContent = rol;
+  $('#me-role').className = 'role-badge ' + claseRol(rol);
   $('#me-avatar').textContent = iniciales(nombre);
 }
 
@@ -994,7 +1026,7 @@ async function cambiarPassword(idA, idB, extra) {
 }
 
 function modalCambioObligatorio() {
-  const nombre = (S.perfil && S.perfil.nombre) || (S.user.email || '').split('@')[0];
+  const nombre = (S.perfil && S.perfil.nombre) || usuarioDe(S.user.email);
   const cuerpo =
     '<p class="lead">Entraste con una contraseña temporal. Elige la tuya para continuar; ' +
     'nadie más la conoce, ni siquiera quien te dio de alta.</p>' +
@@ -1022,7 +1054,7 @@ function modalCambioObligatorio() {
 function modalCuenta() {
   const nombre = (S.perfil && S.perfil.nombre) || '';
   const cuerpo =
-    '<p class="lead">' + esc(S.user.email) + '</p>' +
+    '<p class="lead">Usuario <b>' + esc(usuarioDe(S.user.email)) + '</b> · ' + esc(S.user.email) + '</p>' +
     campoTexto('f-nombre', 'Nombre', nombre, 'text', 'Como apareces en el hub') +
     '<div class="field"><label>Contraseña</label>' +
       '<div class="hint" style="margin:0">Déjala en blanco si solo quieres cambiar tu nombre.</div></div>' +

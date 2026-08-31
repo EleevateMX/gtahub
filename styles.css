@@ -256,6 +256,14 @@ input::placeholder, textarea::placeholder { color: rgba(255, 255, 255, .28); }
 .who .meta { min-width: 0; }
 .who .meta b { display: block; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .who .meta small { color: var(--text-3); font-size: 11px; }
+.role-badge {
+  display: inline-block; margin-top: 4px;
+  font-size: 8.5px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase;
+  border-radius: 20px; padding: 3px 9px;
+}
+.role-ceo { background: rgba(250, 178, 25, .12); border: 1px solid rgba(250, 178, 25, .4); color: #FAB219; }
+.role-dir { background: var(--crimson-soft); border: 1px solid rgba(232, 0, 90, .4); color: #ff4d8d; }
+.role-inv { background: rgba(255, 255, 255, .06); border: 1px solid rgba(255, 255, 255, .16); color: var(--text-3); }
 
 .main { min-width: 0; padding: 26px 30px 90px; }
 

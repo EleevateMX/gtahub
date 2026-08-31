@@ -38,15 +38,22 @@ proyectos de punto de venta.
 
 En Supabase → **Authentication → Users → Add user**:
 
-- Correo y contraseña de cada persona.
+- Correo `<usuario>@gtahub.gg` y contraseña temporal de cada persona.
 - Marca **Auto Confirm User** para que pueda entrar sin confirmar correo.
 
-El perfil dentro del hub se crea solo. Para poner nombre y rol visibles:
+**El equipo entra con su usuario, no con el correo:** quien escribe
+`kevinagre` en el login, el hub lo completa a `kevinagre@gtahub.gg`. También
+acepta el correo completo. Por eso el correo funciona como etiqueta de acceso
+aunque no exista el buzón.
 
-```sql
-update public.perfiles set nombre = 'Edy', rol = 'Dirección'
-where id = (select id from auth.users where email = 'edy@gtahub.gg');
-```
+**La contraseña que repartes es temporal:** la primera vez que alguien entra,
+el hub abre una pantalla que no se puede saltar y le pide su propia contraseña
+(columna `perfiles.debe_cambiar_password`). Después la cambia cuando quiera
+desde **Mi cuenta**, en la tarjeta de usuario del sidebar.
+
+Los perfiles se crean solos por trigger. Para ponerles nombre y rol, corre
+[`supabase/usuarios.sql`](supabase/usuarios.sql) — ahí está el equipo con sus
+roles (los roles `CEO` y `Director…` se pintan con distintivo propio).
 
 Nadie sin usuario ve datos: las tablas tienen RLS y el rol anónimo no tiene
 permiso de lectura.
@@ -136,6 +143,7 @@ vercel.json             Cache-Control para que un deploy nuevo se vea al instant
 icons/                  Íconos de la app
 supabase/schema.sql     Tablas, RLS, triggers y realtime
 supabase/seed.sql       Datos de ejemplo (opcional)
+supabase/usuarios.sql   Nombres y roles del equipo (sin contraseñas)
 CLAUDE.md               Contexto para sesiones de Claude Code
 ```
 

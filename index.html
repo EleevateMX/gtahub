@@ -66,8 +66,9 @@
     <div class="boot-body">
       <form id="login-form">
         <div class="field">
-          <label for="lg-email">Correo</label>
-          <input id="lg-email" type="email" autocomplete="username" placeholder="tu@gtahub.gg" required>
+          <label for="lg-email">Usuario o correo</label>
+          <input id="lg-email" type="text" autocomplete="username" spellcheck="false"
+                 autocapitalize="none" placeholder="kevinagre" required>
         </div>
         <div class="field">
           <label for="lg-pass">Contraseña</label>
@@ -99,7 +100,7 @@
         <div class="avatar" id="me-avatar">?</div>
         <div class="meta">
           <b id="me-name">—</b>
-          <small id="me-role">—</small>
+          <span class="role-badge role-inv" id="me-role">—</span>
         </div>
         <span class="who-edit">✎</span>
       </div>

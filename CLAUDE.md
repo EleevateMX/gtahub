@@ -25,6 +25,23 @@ cambio se ve con abrir el archivo y un push redespliega en un minuto.
 | Cuerpo | Inter / system-ui |
 
 Etiquetas en mayúsculas con `letter-spacing` de 2–4px. Todo en español de México.
+El logo es el lockup «GH / CONTENT HUB» sobre crimson con retícula sutil
+(`icons/`); el login y el sidebar lo reproducen.
+
+## Secciones de marca
+
+Todo el contenido se clasifica por sección de GTAHUB:
+
+| id | Sección | Servidores |
+|---|---|---|
+| `esp` | GTAHUB ESP | Orion / Andromeda (español) |
+| `pe` | GTAHUB PE | Pegasus (inglés) |
+| `ambas` | Aplica a las dos | — |
+
+El selector global Todo/ESP/PE (sidebar y móvil, `pintarSecciones`) filtra
+todas las vistas vía `enSeccion()` y se guarda en `localStorage`
+(`gtahub.seccion`). Las metas semanales existen por sección (`esp`/`pe`);
+con el filtro en «Todo» se muestran sumadas y no se pueden editar.
 
 Paleta por plataforma (validada, no cambiarla):
 
@@ -63,8 +80,12 @@ Paleta por plataforma (validada, no cambiarla):
   `impacto` y `esfuerzo` de 1 a 5, `plataformas text[]`.
 - `tendencias` — lo que escribe la investigación semanal de servidores de
   roleplay: `titulo`, `resumen`, `fuente`, `servidor`, `metrica`, `valor`,
-  `periodo`, `tags`. El dashboard la lee en Inicio y en Ideas; **el hub nunca
-  escribe en esta tabla**.
+  `periodo`, `tags`, `seccion` (default `ambas`). El dashboard la lee en
+  Inicio y en Ideas; **el hub nunca escribe en esta tabla**.
+- `metas` — meta semanal de publicaciones por `seccion` (`esp|pe`) y
+  `plataforma`. Editable desde la tarjeta «Cadencia semanal» de Inicio.
+- `publicaciones`, `pendientes` e `ideas` llevan además `seccion`
+  (`esp|pe|ambas`, default `esp`).
 
 RLS: el rol anónimo no ve nada; `authenticated` lee y escribe todo. Los usuarios
 se dan de alta en Supabase → Authentication → Users.
@@ -78,7 +99,8 @@ se dan de alta en Supabase → Authentication → Users.
   contenido variable pasa por `esc()`. Si agregas una vista, agrégala a `VISTAS`
   y al router de `render()`.
 - Los clics se manejan por delegación en `document` con atributos `data-*`
-  (`data-ir`, `data-nueva`, `data-pub`, `data-pen`, `data-idea`, `data-mes`).
+  (`data-ir`, `data-nueva`, `data-pub`, `data-pen`, `data-idea`, `data-mes`,
+  `data-seccion`, `data-meta`, `data-csv`).
 - Después de escribir en la base: `cargarTodo()` y `render()`. El canal de
   realtime ya refresca a los demás.
 
@@ -89,7 +111,8 @@ se dan de alta en Supabase → Authentication → Users.
 - El arrastrar y soltar del kanban (`armarDnD`) y el orden de las columnas.
 - La pantalla de setup: es la que permite estrenar el sitio sin tocar el repo.
 - Los `id` de plataforma (`instagram`, `tiktok`, `discord`, `email`, `facebook`)
-  se guardan tal cual en la base. Cambiarlos invalida los datos existentes.
+  y de sección (`esp`, `pe`, `ambas`) se guardan tal cual en la base.
+  Cambiarlos invalida los datos existentes.
 
 ## Flujo de trabajo
 

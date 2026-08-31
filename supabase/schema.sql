@@ -68,6 +68,8 @@ $$;
 create table if not exists public.publicaciones (
   id                uuid primary key default gen_random_uuid(),
   titulo            text not null,
+  seccion           text not null default 'esp'
+                    check (seccion in ('esp', 'pe', 'ambas')),
   copy_texto        text,
   plataformas       text[] not null default '{}',
   estado            text not null default 'idea'
@@ -90,6 +92,9 @@ create table if not exists public.publicaciones (
 comment on column public.publicaciones.plataformas is
   'Arreglo de: instagram, tiktok, discord, email, facebook. El mismo id que usa el dashboard.';
 
+comment on column public.publicaciones.seccion is
+  'esp = GTAHUB ESP (Orion/Andromeda), pe = GTAHUB PE (Pegasus, ingles), ambas = aplica a las dos.';
+
 create index if not exists ix_pub_fecha  on public.publicaciones (fecha_programada);
 create index if not exists ix_pub_estado on public.publicaciones (estado);
 
@@ -103,6 +108,8 @@ create trigger tr_pub_touch before update on public.publicaciones
 create table if not exists public.pendientes (
   id            uuid primary key default gen_random_uuid(),
   titulo        text not null,
+  seccion       text not null default 'esp'
+                check (seccion in ('esp', 'pe', 'ambas')),
   descripcion   text,
   estado        text not null default 'por_hacer'
                 check (estado in ('por_hacer', 'en_progreso', 'listo')),
@@ -128,6 +135,8 @@ create trigger tr_pen_touch before update on public.pendientes
 create table if not exists public.ideas (
   id           uuid primary key default gen_random_uuid(),
   titulo       text not null,
+  seccion      text not null default 'esp'
+               check (seccion in ('esp', 'pe', 'ambas')),
   descripcion  text,
   categoria    text,
   plataformas  text[] not null default '{}',
@@ -152,6 +161,8 @@ create trigger tr_ideas_touch before update on public.ideas
 create table if not exists public.tendencias (
   id          uuid primary key default gen_random_uuid(),
   titulo      text not null,
+  seccion     text not null default 'ambas'
+              check (seccion in ('esp', 'pe', 'ambas')),
   resumen     text,
   fuente      text,
   servidor    text,
@@ -165,6 +176,37 @@ create table if not exists public.tendencias (
 create index if not exists ix_ten_periodo on public.tendencias (periodo desc);
 
 -- ------------------------------------------------------------
+-- Metas semanales de publicacion por seccion y plataforma
+-- ------------------------------------------------------------
+create table if not exists public.metas (
+  seccion       text not null check (seccion in ('esp', 'pe')),
+  plataforma    text not null,
+  meta_semanal  integer not null default 3 check (meta_semanal >= 0),
+  updated_at    timestamptz not null default now(),
+  primary key (seccion, plataforma)
+);
+
+drop trigger if exists tr_metas_touch on public.metas;
+create trigger tr_metas_touch before update on public.metas
+  for each row execute function public.fn_touch();
+
+-- Metas iniciales (editables desde el dashboard, en Inicio)
+insert into public.metas (seccion, plataforma, meta_semanal)
+select s, p.plataforma, p.meta
+from (values ('tiktok', 7), ('instagram', 5), ('facebook', 3), ('discord', 2), ('email', 1))
+  as p (plataforma, meta)
+cross join (values ('esp'), ('pe')) as x (s)
+on conflict (seccion, plataforma) do nothing;
+
+-- ------------------------------------------------------------
+-- Migracion defensiva: agrega 'seccion' si la base ya existia
+-- ------------------------------------------------------------
+alter table public.publicaciones add column if not exists seccion text not null default 'esp';
+alter table public.pendientes    add column if not exists seccion text not null default 'esp';
+alter table public.ideas         add column if not exists seccion text not null default 'esp';
+alter table public.tendencias    add column if not exists seccion text not null default 'ambas';
+
+-- ------------------------------------------------------------
 -- RLS: nadie anonimo ve nada. Quien inicio sesion, trabaja.
 -- ------------------------------------------------------------
 alter table public.perfiles      enable row level security;
@@ -172,12 +214,13 @@ alter table public.publicaciones enable row level security;
 alter table public.pendientes    enable row level security;
 alter table public.ideas         enable row level security;
 alter table public.tendencias    enable row level security;
+alter table public.metas         enable row level security;
 
 do $$
 declare
   t text;
 begin
-  foreach t in array array['publicaciones', 'pendientes', 'ideas', 'tendencias']
+  foreach t in array array['publicaciones', 'pendientes', 'ideas', 'tendencias', 'metas']
   loop
     execute format('drop policy if exists equipo_lee on public.%I', t);
     execute format('drop policy if exists equipo_escribe on public.%I', t);
@@ -204,7 +247,7 @@ do $$
 declare
   t text;
 begin
-  foreach t in array array['publicaciones', 'pendientes', 'ideas', 'tendencias']
+  foreach t in array array['publicaciones', 'pendientes', 'ideas', 'tendencias', 'metas']
   loop
     begin
       execute format('alter publication supabase_realtime add table public.%I', t);

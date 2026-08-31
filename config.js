@@ -1,13 +1,16 @@
 /* GTAHUB Content Hub — conexión a Supabase.
  *
- * Rellena estos dos valores con los del proyecto de Supabase del hub
- * (Supabase → Project Settings → API). La clave anon/publishable es
- * pública por diseño: quien protege los datos es RLS + el login.
+ * SUPABASE_URL: la "Project URL" del proyecto GTAHUB
+ * (Supabase → Project Settings → API → Project URL).
  *
- * Si los dejas vacíos, el sitio pide los datos en pantalla la primera vez
+ * La clave publishable es pública por diseño: quien protege los datos es
+ * RLS + el login. La clave secreta (sb_secret_...) NUNCA va aquí ni en
+ * ningún archivo del repo.
+ *
+ * Si la URL está vacía, el sitio pide los datos en pantalla la primera vez
  * y los guarda en el navegador (útil para probar antes de fijarlos aquí).
  */
 window.GTAHUB_CONFIG = {
-  SUPABASE_URL: "",
-  SUPABASE_ANON_KEY: ""
+  SUPABASE_URL: "", // ← pega aquí la Project URL, ej. "https://xxxxxxxx.supabase.co"
+  SUPABASE_ANON_KEY: "sb_publishable_4bo-HL4KOmINZZCQs8cfhw_iqFClE_A"
 };

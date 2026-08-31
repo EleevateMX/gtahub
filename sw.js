@@ -2,7 +2,7 @@
    Estrategia: red primero (para que un deploy nuevo se vea al instante),
    con caché de respaldo cuando no hay conexión. Nunca cachea Supabase. */
 
-const CACHE = 'gtahub-v1';
+const CACHE = 'gtahub-v2';
 const SHELL = [
   './',
   './index.html',

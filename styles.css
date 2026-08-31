@@ -86,10 +86,14 @@ button, input, select, textarea { font-family: inherit; font-size: 14px; }
   text-align: center;
 }
 
-.boot-head .mark { font-family: var(--display); font-size: 30px; line-height: 1; }
-.boot-head .mark span { color: var(--panel-dark); }
+.boot-head .mark { font-family: var(--display); font-size: 46px; line-height: 1; }
+.boot-head .mark-line { width: 38px; height: 3px; background: #fff; margin: 11px auto 9px; }
+.boot-head .mark-sub {
+  font-size: 12px; font-weight: 800; letter-spacing: 5px;
+  text-transform: uppercase; color: #fff;
+}
 .boot-head .sub {
-  margin-top: 8px;
+  margin-top: 14px;
   font-size: 10px;
   font-weight: 700;
   letter-spacing: 4px;
@@ -187,6 +191,35 @@ input::placeholder, textarea::placeholder { color: rgba(255, 255, 255, .28); }
 }
 .side .brand .name { font-family: var(--display); font-size: 16px; }
 .side .brand .name span { color: var(--crimson); }
+.side .brand .name small {
+  display: block; font-family: var(--body); font-size: 8.5px; font-weight: 700;
+  letter-spacing: 2.5px; color: var(--text-3); margin-top: 4px;
+}
+.logo-img { width: 38px; height: 38px; border-radius: 9px; flex: none; }
+
+/* Selector de sección (Todo / ESP / PE) */
+.seg {
+  display: flex; gap: 3px; padding: 3px;
+  background: var(--panel-dark);
+  border: 1px solid var(--border); border-radius: 9px;
+}
+.seg button {
+  flex: 1; background: transparent; border: none; border-radius: 7px;
+  padding: 8px 6px; color: var(--text-3); cursor: pointer;
+  font-size: 11px; font-weight: 800; letter-spacing: 1.5px; text-transform: uppercase;
+  transition: background .15s ease, color .15s ease;
+}
+.seg button:hover { color: #fff; }
+.seg button.on { background: var(--crimson); color: #fff; }
+.seg-m { display: none; margin-bottom: 16px; }
+
+.sec-esp   { border-color: rgba(232, 0, 90, .5); color: #ff4d8d; }
+.sec-pe    { border-color: rgba(144, 133, 233, .55); color: #a99ff0; }
+.sec-ambas { border-color: rgba(255, 255, 255, .18); color: var(--text-3); }
+
+.goal { cursor: pointer; }
+.goal:hover { color: var(--crimson); }
+.hint { margin-top: 12px; font-size: 11px; line-height: 17px; color: var(--text-3); }
 
 .nav { display: flex; flex-direction: column; gap: 4px; }
 .nav button {
@@ -479,6 +512,7 @@ table.data td.num { text-align: right; font-variant-numeric: tabular-nums; }
 @media (max-width: 860px) {
   .app.on { grid-template-columns: 1fr; }
   .side { display: none; }
+  .seg-m { display: flex; }
   .tabbar { display: flex; }
   .main { padding: 16px 16px 96px; }
   .mobile-head {
@@ -486,10 +520,7 @@ table.data td.num { text-align: right; font-variant-numeric: tabular-nums; }
     margin-bottom: 18px; padding-bottom: 14px;
     border-bottom: 1px solid var(--border);
   }
-  .mobile-head .logo {
-    width: 32px; height: 32px; border-radius: 8px; background: var(--crimson);
-    display: grid; place-items: center; font-family: var(--display); font-size: 11px;
-  }
+  .mobile-head .logo-img { width: 32px; height: 32px; border-radius: 8px; }
   .mobile-head .name { font-family: var(--display); font-size: 15px; }
   .mobile-head .name span { color: var(--crimson); }
   .mobile-head .out { margin-left: auto; }

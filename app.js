@@ -14,6 +14,19 @@ const PLATAFORMAS = [
   { id: 'facebook',  nombre: 'Facebook',  color: '#1877F2', ic: '👥' }
 ];
 
+const SECCIONES = [
+  { id: 'esp', nombre: 'ESP', detalle: 'Orion / Andromeda', color: '#E8005A' },
+  { id: 'pe',  nombre: 'PE',  detalle: 'Pegasus · English', color: '#9085e9' }
+];
+
+const SECCION_OPCIONES = [
+  { id: 'esp',   nombre: 'GTAHUB ESP · Orion / Andromeda' },
+  { id: 'pe',    nombre: 'GTAHUB PE · Pegasus (inglés)' },
+  { id: 'ambas', nombre: 'Ambas secciones' }
+];
+
+const METAS_BASE = { tiktok: 7, instagram: 5, facebook: 3, discord: 2, email: 1 };
+
 const ESTADOS_PUB = [
   { id: 'idea',       nombre: 'Idea' },
   { id: 'borrador',   nombre: 'Borrador' },
@@ -59,11 +72,13 @@ const S = {
   user: null,
   perfil: null,
   perfiles: [],
+  metas: [],
   publicaciones: [],
   pendientes: [],
   ideas: [],
   tendencias: [],
   vista: 'inicio',
+  seccion: localStorage.getItem('gtahub.seccion') || 'todas',
   filtros: { q: '', plataforma: '', estado: '' },
   mes: new Date(new Date().getFullYear(), new Date().getMonth(), 1),
   dragId: null,
@@ -143,6 +158,40 @@ function num(n) {
 function iniciales(texto) {
   const partes = String(texto || '?').trim().split(/[\s@._-]+/).filter(Boolean);
   return ((partes[0] || '?')[0] + (partes[1] ? partes[1][0] : '')).toUpperCase();
+}
+
+function enSeccion(x) {
+  if (S.seccion === 'todas') return true;
+  const s = x.seccion || 'ambas';
+  return s === 'ambas' || s === S.seccion;
+}
+
+function seccionInicial() {
+  return S.seccion === 'pe' ? 'pe' : 'esp';
+}
+
+function pillSeccion(x) {
+  const s = x.seccion || 'ambas';
+  if (s === 'ambas') return '<span class="pill sec-ambas">ESP·PE</span>';
+  const sec = SECCIONES.find(z => z.id === s);
+  return '<span class="pill sec-' + s + '">' + esc(sec ? sec.nombre : s) + '</span>';
+}
+
+function lunesDe(fecha) {
+  const d = new Date(fecha);
+  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function metaDe(seccion, plataforma) {
+  const fila = S.metas.find(m => m.seccion === seccion && m.plataforma === plataforma);
+  return fila ? fila.meta_semanal : (METAS_BASE[plataforma] ?? 3);
+}
+
+function metaPara(plataforma) {
+  if (S.seccion === 'todas') return metaDe('esp', plataforma) + metaDe('pe', plataforma);
+  return metaDe(S.seccion, plataforma);
 }
 
 function pills(ids) {
@@ -289,15 +338,16 @@ function pintarIdentidad() {
    ============================================================ */
 
 async function cargarTodo() {
-  const [pub, pen, ide, ten, per] = await Promise.all([
+  const [pub, pen, ide, ten, per, met] = await Promise.all([
     sb.from('publicaciones').select('*').order('fecha_programada', { ascending: true }),
     sb.from('pendientes').select('*').order('orden', { ascending: true }),
     sb.from('ideas').select('*').order('created_at', { ascending: false }),
     sb.from('tendencias').select('*').order('periodo', { ascending: false }).limit(24),
-    sb.from('perfiles').select('*')
+    sb.from('perfiles').select('*'),
+    sb.from('metas').select('*')
   ]);
 
-  const err = [pub, pen, ide, ten, per].find(r => r.error);
+  const err = [pub, pen, ide, ten, per, met].find(r => r.error);
   if (err) {
     console.error(err.error);
     toast('Error leyendo datos: ' + err.error.message, true);
@@ -308,6 +358,7 @@ async function cargarTodo() {
   S.ideas = ide.data || [];
   S.tendencias = ten.data || [];
   S.perfiles = per.data || [];
+  S.metas = met.data || [];
   S.perfil = S.perfiles.find(p => p.id === S.user.id) || null;
 }
 
@@ -345,7 +396,17 @@ async function borrar(tabla, id) {
    ============================================================ */
 
 function pendientesAbiertos() {
-  return S.pendientes.filter(p => p.estado !== 'listo').length;
+  return S.pendientes.filter(enSeccion).filter(p => p.estado !== 'listo').length;
+}
+
+function pintarSecciones() {
+  const items = [{ id: 'todas', nombre: 'Todo' }].concat(SECCIONES);
+  const html = items.map(x =>
+    '<button data-seccion="' + x.id + '" class="' + (S.seccion === x.id ? 'on' : '') + '"' +
+    (x.detalle ? ' title="' + esc(x.detalle) + '"' : '') + '>' + esc(x.nombre) + '</button>'
+  ).join('');
+  const a = $('#seg-side'); if (a) a.innerHTML = html;
+  const b = $('#seg-m'); if (b) b.innerHTML = html;
 }
 
 function pintarNav() {
@@ -371,6 +432,13 @@ document.addEventListener('click', ev => {
     pintarNav();
     render();
     window.scrollTo({ top: 0 });
+    return;
+  }
+  const seg = ev.target.closest('[data-seccion]');
+  if (seg && !seg.closest('.modal')) {
+    S.seccion = seg.dataset.seccion;
+    localStorage.setItem('gtahub.seccion', S.seccion);
+    render();
   }
 });
 
@@ -387,6 +455,7 @@ function cabecera(eyebrow, titulo, acciones) {
 
 function render() {
   pintarNav();
+  pintarSecciones();
   const v = $('#view');
   if (S.vista === 'inicio') v.innerHTML = vistaInicio();
   else if (S.vista === 'publicaciones') v.innerHTML = vistaPublicaciones();
@@ -400,23 +469,53 @@ function render() {
 
 function proximas(limite) {
   const ahora = Date.now();
-  return S.publicaciones
+  return S.publicaciones.filter(enSeccion)
     .filter(p => p.fecha_programada && new Date(p.fecha_programada).getTime() >= ahora && p.estado !== 'publicada')
     .sort((a, b) => new Date(a.fecha_programada) - new Date(b.fecha_programada))
     .slice(0, limite || 6);
 }
 
+function tarjetaCadencia() {
+  const inicio = lunesDe(new Date());
+  const fin = new Date(inicio);
+  fin.setDate(inicio.getDate() + 7);
+  const publicadas = S.publicaciones.filter(enSeccion).filter(p => {
+    if (p.estado !== 'publicada' || !p.fecha_programada) return false;
+    const f = new Date(p.fecha_programada);
+    return f >= inicio && f < fin;
+  });
+  const filas = PLATAFORMAS.map(pl => {
+    const n = publicadas.filter(p => (p.plataformas || []).includes(pl.id)).length;
+    const meta = metaPara(pl.id);
+    const pct = meta > 0 ? Math.min(100, n / meta * 100) : 0;
+    return '<div class="bar-row">' +
+      '<div class="lbl"><span class="dot" style="background:' + pl.color + '"></span>' + esc(pl.nombre) + '</div>' +
+      '<div class="bar-track"><div class="bar-fill" style="width:' + pct + '%;background:' + pl.color + '"></div></div>' +
+      '<div class="val"><b>' + n + '</b><span class="goal" data-meta="' + pl.id + '" title="Editar meta semanal"> / ' + meta + '</span>' +
+      (meta > 0 && n >= meta ? ' ✓' : '') + '</div>' +
+    '</div>';
+  }).join('');
+  const nota = S.seccion === 'todas'
+    ? 'Metas de ESP + PE sumadas. Elige una sección para editar sus metas.'
+    : 'Publicadas esta semana vs. meta. Toca el número de meta para cambiarla.';
+  return '<div class="card">' +
+    '<h2>Cadencia semanal</h2>' +
+    '<div class="bars">' + filas + '</div>' +
+    '<div class="hint">' + esc(nota) + '</div>' +
+  '</div>';
+}
+
 function vistaInicio() {
   const ahora = new Date();
-  const delMes = S.publicaciones.filter(p => {
+  const delMes = S.publicaciones.filter(enSeccion).filter(p => {
     const f = p.fecha_programada ? new Date(p.fecha_programada) : null;
     return f && f.getMonth() === ahora.getMonth() && f.getFullYear() === ahora.getFullYear();
   });
-  const programadas = S.publicaciones.filter(p => p.estado === 'programada').length;
-  const ideasNuevas = S.ideas.filter(i => i.estado === 'nueva').length;
+  const programadas = S.publicaciones.filter(enSeccion).filter(p => p.estado === 'programada').length;
+  const ideasNuevas = S.ideas.filter(enSeccion).filter(i => i.estado === 'nueva').length;
 
   const prox = proximas(6);
-  const urgentes = S.pendientes
+  const urgentes = S.pendientes.filter(enSeccion)
     .filter(p => p.estado !== 'listo')
     .sort((a, b) => {
       const peso = { alta: 0, media: 1, baja: 2 };
@@ -469,14 +568,11 @@ function vistaInicio() {
         : '<div class="empty">Sin pendientes abiertos. 🎉</div>') +
       '</div>' +
 
-      '<div class="card">' +
-        '<h2>Actividad del mes <span class="count">' + delMes.length + '</span></h2>' +
-        barrasPorPlataforma(delMes) +
-      '</div>' +
+      tarjetaCadencia() +
 
       '<div class="card">' +
         '<h2>Últimas tendencias</h2>' +
-        (S.tendencias.length ? '<div class="list">' + S.tendencias.slice(0, 5).map(t =>
+        (S.tendencias.filter(enSeccion).length ? '<div class="list">' + S.tendencias.filter(enSeccion).slice(0, 5).map(t =>
           '<div class="row trend" style="cursor:default">' +
             '<div class="grow">' +
               '<div class="t">' + esc(t.titulo) + '</div>' +
@@ -495,7 +591,7 @@ function vistaInicio() {
 
 function filtrarPublicaciones() {
   const q = S.filtros.q.toLowerCase();
-  return S.publicaciones.filter(p => {
+  return S.publicaciones.filter(enSeccion).filter(p => {
     if (S.filtros.plataforma && !(p.plataformas || []).includes(S.filtros.plataforma)) return false;
     if (S.filtros.estado && p.estado !== S.filtros.estado) return false;
     if (q) {
@@ -532,7 +628,7 @@ function vistaPublicaciones() {
           '<td><b>' + esc(p.titulo) + '</b>' +
             (p.responsable ? '<div class="s" style="color:var(--text-3);font-size:12px;margin-top:3px">' + esc(p.responsable) + '</div>' : '') +
           '</td>' +
-          '<td><span class="pf">' + pills(p.plataformas) + '</span></td>' +
+          '<td><span class="pf">' + pillSeccion(p) + pills(p.plataformas) + '</span></td>' +
           '<td><span class="pill st-' + esc(p.estado) + '">' + esc(nombreEstado(ESTADOS_PUB, p.estado)) + '</span></td>' +
           '<td style="white-space:nowrap;color:var(--text-2)">' + esc(fechaCorta(p.fecha_programada)) + '</td>' +
           '<td class="num">' + esc(num(p.alcance)) + '</td>' +
@@ -541,6 +637,7 @@ function vistaPublicaciones() {
     : '<div class="card"><div class="empty">Sin publicaciones con esos filtros.</div></div>';
 
   return cabecera('Contenido', 'Publicaciones',
+      '<button class="btn btn-ghost" data-csv>Exportar CSV</button>' +
       '<button class="btn btn-primary" data-nueva="publicacion">+ Nueva publicación</button>') +
     filtros + cuerpo;
 }
@@ -551,7 +648,7 @@ function vistaPendientes() {
   return cabecera('Flujo de trabajo', 'Pendientes',
       '<button class="btn btn-primary" data-nueva="pendiente">+ Nuevo pendiente</button>') +
     '<div class="kanban">' + COLUMNAS.map(col => {
-      const tareas = S.pendientes
+      const tareas = S.pendientes.filter(enSeccion)
         .filter(t => (t.estado || 'por_hacer') === col.id)
         .sort((a, b) => (a.orden ?? 0) - (b.orden ?? 0));
       return '<div class="col" data-col="' + col.id + '">' +
@@ -568,6 +665,7 @@ function tarjetaPendiente(t) {
     '<div class="t">' + esc(t.titulo) + '</div>' +
     (t.descripcion ? '<div class="d">' + esc(t.descripcion) + '</div>' : '') +
     '<div class="foot">' +
+      pillSeccion(t) +
       '<span class="pill pr-' + esc(t.prioridad || 'media') + '">' + esc(t.prioridad || 'media') + '</span>' +
       (t.responsable ? '<span class="due">' + esc(t.responsable) + '</span>' : '') +
       (t.fecha_limite ? '<span class="due">📅 ' + esc(fechaCorta(t.fecha_limite)) + '</span>' : '') +
@@ -623,7 +721,7 @@ function vistaCalendario() {
   inicio.setDate(1 - ((primero.getDay() + 6) % 7)); // semana arranca en lunes
 
   const porDia = {};
-  S.publicaciones.forEach(p => {
+  S.publicaciones.filter(enSeccion).forEach(p => {
     if (!p.fecha_programada) return;
     const k = claveDia(new Date(p.fecha_programada));
     (porDia[k] = porDia[k] || []).push(p);
@@ -666,7 +764,8 @@ function vistaCalendario() {
 /* ---------- Ideas ---------- */
 
 function vistaIdeas() {
-  const activas = S.ideas.filter(i => i.estado !== 'descartada');
+  const activas = S.ideas.filter(enSeccion).filter(i => i.estado !== 'descartada');
+  const tend = S.tendencias.filter(enSeccion);
 
   const tarjetas = activas.length
     ? '<div class="grid g-3">' + activas.map(i =>
@@ -674,6 +773,7 @@ function vistaIdeas() {
           '<div class="t">' + esc(i.titulo) + '</div>' +
           (i.descripcion ? '<div class="d">' + esc(i.descripcion) + '</div>' : '') +
           '<div class="foot">' +
+            pillSeccion(i) +
             '<span class="pill">' + esc(nombreEstado(ESTADOS_IDEA, i.estado)) + '</span>' +
             pills(i.plataformas) +
             '<span class="score" style="margin-left:auto">Impacto <b>' + (i.impacto || 3) + '</b> · Esfuerzo <b>' + (i.esfuerzo || 3) + '</b></span>' +
@@ -682,8 +782,8 @@ function vistaIdeas() {
       ).join('') + '</div>'
     : '<div class="card"><div class="empty">Sin ideas todavía.<br>Guarda aquí lo que se le ocurra al equipo.</div></div>';
 
-  const tendencias = S.tendencias.length
-    ? '<div class="grid g-3">' + S.tendencias.map(t =>
+  const tendencias = tend.length
+    ? '<div class="grid g-3">' + tend.map(t =>
         '<div class="card trend">' +
           '<div class="t" style="font-weight:700">' + esc(t.titulo) + '</div>' +
           (t.resumen ? '<div class="d" style="margin-top:8px;font-size:13px;line-height:20px;color:var(--text-2)">' + esc(t.resumen) + '</div>' : '') +
@@ -721,8 +821,55 @@ function barrasPorPlataforma(lista) {
   ).join('') + '</div>';
 }
 
+function graficaSemanas(publicadas) {
+  const lunes = lunesDe(new Date());
+  const semanas = [];
+  for (let i = 7; i >= 0; i--) {
+    const ini = new Date(lunes);
+    ini.setDate(lunes.getDate() - i * 7);
+    const fin = new Date(ini);
+    fin.setDate(ini.getDate() + 7);
+    const n = publicadas.filter(p => {
+      if (!p.fecha_programada) return false;
+      const f = new Date(p.fecha_programada);
+      return f >= ini && f < fin;
+    }).length;
+    semanas.push({
+      etiqueta: ini.getDate() + ' ' + ini.toLocaleDateString('es-MX', { month: 'short' }),
+      n
+    });
+  }
+  const W = 480, H = 180, padL = 26, padB = 24, padT = 14;
+  const max = Math.max(4, ...semanas.map(x => x.n));
+  const bw = (W - padL - 8) / semanas.length;
+  let ejes = '', barras = '', etiquetas = '';
+  for (let g = 0; g <= 4; g++) {
+    const v = Math.round(max * g / 4);
+    const y = padT + (H - padT - padB) * (1 - g / 4);
+    ejes += '<line x1="' + padL + '" x2="' + (W - 4) + '" y1="' + y + '" y2="' + y + '" stroke="#1e1e2e"/>' +
+      '<text x="' + (padL - 6) + '" y="' + (y + 3) + '" text-anchor="end" font-size="9" fill="rgba(255,255,255,.45)">' + v + '</text>';
+  }
+  semanas.forEach((sem, i) => {
+    const h = (H - padT - padB) * (sem.n / max);
+    const x = padL + i * bw + bw * 0.18;
+    const ancho = bw * 0.64;
+    if (sem.n > 0) {
+      barras += '<rect x="' + x + '" y="' + (H - padB - h) + '" width="' + ancho + '" height="' + h +
+        '" rx="3" fill="#E8005A"><title>Semana del ' + esc(sem.etiqueta) + ': ' + sem.n + '</title></rect>';
+    } else {
+      barras += '<rect x="' + x + '" y="' + (H - padB - 2) + '" width="' + ancho + '" height="2" fill="#1e1e2e"/>';
+    }
+    if (i % 2 === 0) {
+      etiquetas += '<text x="' + (x + ancho / 2) + '" y="' + (H - 7) + '" text-anchor="middle" font-size="9" fill="rgba(255,255,255,.45)">' + esc(sem.etiqueta) + '</text>';
+    }
+  });
+  return '<div class="card"><h2>Publicadas por semana (8 semanas)</h2>' +
+    '<svg viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="Publicaciones por semana" style="width:100%;max-width:760px;height:auto;display:block;margin:0 auto">' +
+    ejes + barras + etiquetas + '</svg></div>';
+}
+
 function vistaMetricas() {
-  const publicadas = S.publicaciones.filter(p => p.estado === 'publicada');
+  const publicadas = S.publicaciones.filter(enSeccion).filter(p => p.estado === 'publicada');
   const suma = campo => publicadas.reduce((a, p) => a + Number(p[campo] || 0), 0);
   const alcance = suma('alcance');
   const interacciones = suma('likes') + suma('comentarios') + suma('compartidos') + suma('guardados');
@@ -754,7 +901,9 @@ function vistaMetricas() {
       kpi(tasa, 'Tasa de interacción') +
     '</div>' +
 
-    '<div class="grid g-2">' +
+    graficaSemanas(publicadas) +
+
+    '<div class="grid g-2" style="margin-top:16px">' +
       '<div class="card"><h2>Alcance por plataforma</h2>' +
         (alcance ? '<div class="bars">' + porPlataforma.map(x =>
           '<div class="bar-row">' +
@@ -863,6 +1012,7 @@ function modalPublicacion(id) {
 
   const cuerpo =
     campoTexto('f-titulo', 'Título', p.titulo, 'text', 'Ej. Teaser del evento de fin de semana') +
+    campoSelect('f-seccion', 'Sección', SECCION_OPCIONES, p.seccion || seccionInicial()) +
     campoPlataformas(p.plataformas) +
     '<div class="two">' +
       campoSelect('f-estado', 'Estado', ESTADOS_PUB, p.estado || 'idea') +
@@ -903,6 +1053,7 @@ function modalPublicacion(id) {
     const nvalor = sel => { const v = $(sel).value; return v === '' ? null : Number(v); };
     const fila = {
       titulo,
+      seccion: $('#f-seccion').value,
       copy_texto: $('#f-copy').value.trim() || null,
       plataformas: leerPlataformas(),
       estado: $('#f-estado').value,
@@ -942,6 +1093,7 @@ function modalPendiente(id) {
 
   const cuerpo =
     campoTexto('f-titulo', 'Título', t.titulo, 'text', '¿Qué hay que hacer?') +
+    campoSelect('f-seccion', 'Sección', SECCION_OPCIONES, t.seccion || seccionInicial()) +
     campoArea('f-desc', 'Descripción', t.descripcion, 'Detalle, links, contexto…') +
     '<div class="two">' +
       campoSelect('f-estado', 'Columna', COLUMNAS, t.estado || 'por_hacer') +
@@ -966,6 +1118,7 @@ function modalPendiente(id) {
     const estado = $('#f-estado').value;
     const fila = {
       titulo,
+      seccion: $('#f-seccion').value,
       descripcion: $('#f-desc').value.trim() || null,
       estado,
       prioridad: $('#f-prio').value,
@@ -1001,6 +1154,7 @@ function modalIdea(id) {
 
   const cuerpo =
     campoTexto('f-titulo', 'Idea', i.titulo, 'text', 'Ej. Serie de clips “así se vive el RP”') +
+    campoSelect('f-seccion', 'Sección', SECCION_OPCIONES, i.seccion || seccionInicial()) +
     campoArea('f-desc', 'Descripción', i.descripcion, 'De qué va, por qué funcionaría…') +
     campoPlataformas(i.plataformas) +
     '<div class="two">' +
@@ -1027,6 +1181,7 @@ function modalIdea(id) {
     if (!titulo) { toast('Ponle un título.', true); return; }
     const fila = {
       titulo,
+      seccion: $('#f-seccion').value,
       descripcion: $('#f-desc').value.trim() || null,
       plataformas: leerPlataformas(),
       estado: $('#f-estado').value,
@@ -1053,7 +1208,56 @@ function modalIdea(id) {
    Eventos globales de la vista
    ============================================================ */
 
+function exportarCSV() {
+  const lista = filtrarPublicaciones();
+  if (!lista.length) { toast('No hay publicaciones que exportar.', true); return; }
+  const celda = v => {
+    const t = String(v == null ? '' : v);
+    return /[",\n;]/.test(t) ? '"' + t.replace(/"/g, '""') + '"' : t;
+  };
+  const cab = ['Titulo', 'Seccion', 'Plataformas', 'Estado', 'Fecha', 'Responsable',
+    'Alcance', 'Likes', 'Comentarios', 'Compartidos', 'Guardados', 'URL'];
+  const filas = lista.map(p => [
+    p.titulo, p.seccion || '', (p.plataformas || []).join(' '), p.estado,
+    p.fecha_programada || '', p.responsable || '',
+    p.alcance ?? '', p.likes ?? '', p.comentarios ?? '', p.compartidos ?? '', p.guardados ?? '',
+    p.url || ''
+  ]);
+  const csv = '\ufeff' + [cab.join(','), ...filas.map(f => f.map(celda).join(','))].join('\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  a.download = 'gtahub-publicaciones.csv';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  toast('CSV exportado');
+}
+
+async function editarMeta(plataforma) {
+  if (S.seccion !== 'esp' && S.seccion !== 'pe') {
+    toast('Elige la sección ESP o PE para editar sus metas.', true);
+    return;
+  }
+  const pl = plat(plataforma);
+  const actual = metaDe(S.seccion, plataforma);
+  const v = prompt('Meta semanal de ' + pl.nombre + ' (' + S.seccion.toUpperCase() + '):', actual);
+  if (v === null) return;
+  const n = parseInt(v, 10);
+  if (isNaN(n) || n < 0) { toast('Número inválido.', true); return; }
+  const { error } = await sb.from('metas')
+    .upsert({ seccion: S.seccion, plataforma, meta_semanal: n });
+  if (error) { toast(error.message, true); return; }
+  await cargarTodo();
+  render();
+  toast('Meta actualizada');
+}
+
 document.addEventListener('click', ev => {
+  const meta = ev.target.closest('[data-meta]');
+  if (meta) { editarMeta(meta.dataset.meta); return; }
+
+  const csv = ev.target.closest('[data-csv]');
+  if (csv) { exportarCSV(); return; }
+
   const nueva = ev.target.closest('[data-nueva]');
   if (nueva) {
     const tipo = nueva.dataset.nueva;

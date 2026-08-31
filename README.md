@@ -89,6 +89,11 @@ protege los datos es RLS más el login.
 
 Plataformas que trackea: **Instagram, TikTok, Discord, Email/Newsletter y Facebook**.
 
+Todo se clasifica por sección de marca con el selector global **Todo / ESP / PE**:
+**GTAHUB ESP** (Orion / Andromeda, español) y **GTAHUB PE** (Pegasus, inglés),
+con metas semanales de publicación propias por sección (tarjeta «Cadencia
+semanal» en Inicio).
+
 Todo cambio se replica en vivo (Supabase realtime): si alguien mueve una tarjeta,
 los demás la ven moverse sin recargar.
 

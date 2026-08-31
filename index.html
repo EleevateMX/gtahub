@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>GTAHUB · Content Hub</title>
 <meta name="description" content="Centro de contenido de GTAHUB: publicaciones, pendientes, ideas y métricas del equipo.">
-<meta name="theme-color" content="#E8005A">
+<meta name="theme-color" content="#000000">
 <meta name="color-scheme" content="dark">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -24,7 +24,9 @@
 <div id="setup" class="boot hidden">
   <div class="boot-card">
     <div class="boot-head">
-      <div class="mark">GTA<span>HUB</span></div>
+      <div class="mark">GH</div>
+      <div class="mark-line"></div>
+      <div class="mark-sub">Content Hub</div>
       <div class="sub">Conectar base de datos</div>
     </div>
     <div class="boot-body">
@@ -56,8 +58,10 @@
 <div id="login" class="boot hidden">
   <div class="boot-card">
     <div class="boot-head">
-      <div class="mark">GTA<span>HUB</span></div>
-      <div class="sub">Content Hub</div>
+      <div class="mark">GH</div>
+      <div class="mark-line"></div>
+      <div class="mark-sub">Content Hub</div>
+      <div class="sub">Acceso del equipo</div>
     </div>
     <div class="boot-body">
       <form id="login-form">
@@ -82,9 +86,11 @@
 
   <aside class="side">
     <div class="brand">
-      <div class="logo">GH</div>
-      <div class="name">GTA<span>HUB</span></div>
+      <img class="logo-img" src="icons/icon-192.png" alt="GTAHUB">
+      <div class="name">GTA<span>HUB</span><small>Content Hub</small></div>
     </div>
+
+    <div class="seg" id="seg-side"></div>
 
     <nav class="nav" id="nav"></nav>
 
@@ -102,10 +108,11 @@
 
   <main class="main">
     <div class="mobile-head">
-      <div class="logo">GH</div>
+      <img class="logo-img" src="icons/icon-192.png" alt="GTAHUB">
       <div class="name">GTA<span>HUB</span></div>
       <button class="btn btn-ghost btn-sm out" id="logout-m">Salir</button>
     </div>
+    <div class="seg seg-m" id="seg-m"></div>
     <div id="view"></div>
   </main>
 

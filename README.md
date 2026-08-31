@@ -7,14 +7,17 @@ Sitio estático (HTML + CSS + JS, sin build). Se despliega en Vercel con cada pu
 
 ---
 
-## 1. Desplegar en Vercel
+## 1. Dónde vive el sitio
 
-1. Entra a [vercel.com](https://vercel.com) e inicia sesión con GitHub.
-2. **Add New → Project** → importa `EleevateMX/gtahub`.
-3. Framework preset: **Other**. Sin build command, sin output directory.
-4. **Deploy**. En un minuto queda una URL tipo `gtahub.vercel.app`.
+**GitHub Pages (activo):** cada push despliega solo vía el workflow
+`.github/workflows/pages.yml`. URL:
 
-Cada push a `main` vuelve a desplegar solo.
+> **https://eleevatemx.github.io/gtahub/**
+
+**Vercel (opcional, si quieren dominio propio):** [vercel.com](https://vercel.com)
+→ login con GitHub → **Add New → Project** → importa `EleevateMX/gtahub` →
+preset **Other**, sin build command → Deploy. Queda una URL tipo
+`gtahub.vercel.app` y también redeploya con cada push.
 
 ## 2. Crear el proyecto de Supabase (gratis, aparte)
 
@@ -98,6 +101,27 @@ Todo cambio se replica en vivo (Supabase realtime): si alguien mueve una tarjeta
 los demás la ven moverse sin recargar.
 
 ---
+
+## Trabajar con Claude Code
+
+El repo trae `CLAUDE.md` con todo el contexto (identidad, esquema, convenciones,
+qué no romper), así que cualquier sesión de Claude Code arranca ya sabiendo cómo
+está armado el proyecto. Para iterar desde tu máquina:
+
+```bash
+# Una sola vez
+npm install -g @anthropic-ai/claude-code
+git clone https://github.com/EleevateMX/gtahub.git
+
+# Cada vez que quieras trabajar
+cd gtahub
+git pull
+claude
+```
+
+Dentro de la sesión pide el cambio en español y termina con commit + push:
+el sitio se redeploya solo. Antes de cerrar, Claude debe correr
+`node --check app.js` y probar el sitio con `python3 -m http.server`.
 
 ## Estructura
 

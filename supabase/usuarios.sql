@@ -14,6 +14,11 @@
 -- (lo crea el trigger) y aqui solo se le pone nombre y rol.
 -- ============================================================
 
+-- Red de seguridad: si el schema no se corrio completo, esta columna puede
+-- faltar. Se agrega aqui para que este archivo funcione por si solo.
+alter table public.perfiles
+  add column if not exists debe_cambiar_password boolean not null default true;
+
 update public.perfiles p
 set nombre = v.nombre,
     rol    = v.rol

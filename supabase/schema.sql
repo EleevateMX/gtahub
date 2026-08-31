@@ -287,3 +287,40 @@ begin
   end loop;
 end;
 $$;
+
+-- ------------------------------------------------------------
+-- Comprobacion final: si esto devuelve todo en "ok", quedo listo
+-- ------------------------------------------------------------
+select
+  'tablas'  as revisa,
+  count(*)::text || ' de 6' as valor,
+  case when count(*) = 6 then 'ok' else 'FALTAN' end as estado
+from information_schema.tables
+where table_schema = 'public'
+  and table_name in ('perfiles','publicaciones','pendientes','ideas','tendencias','metas')
+union all
+select 'columna seccion',
+  count(*)::text || ' de 4',
+  case when count(*) = 4 then 'ok' else 'FALTAN' end
+from information_schema.columns
+where table_schema = 'public' and column_name = 'seccion'
+  and table_name in ('publicaciones','pendientes','ideas','tendencias')
+union all
+select 'cambio de password',
+  count(*)::text || ' de 1',
+  case when count(*) = 1 then 'ok' else 'FALTA' end
+from information_schema.columns
+where table_schema = 'public' and table_name = 'perfiles'
+  and column_name = 'debe_cambiar_password'
+union all
+select 'metas sembradas',
+  count(*)::text || ' de 10',
+  case when count(*) = 10 then 'ok' else 'REVISAR' end
+from public.metas
+union all
+select 'RLS activo',
+  count(*)::text || ' de 6',
+  case when count(*) = 6 then 'ok' else 'REVISAR' end
+from pg_tables
+where schemaname = 'public' and rowsecurity
+  and tablename in ('perfiles','publicaciones','pendientes','ideas','tendencias','metas');

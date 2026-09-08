@@ -1,132 +1,103 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>GTAHUB · Content Hub</title>
-<meta name="description" content="Centro de contenido de GTAHUB: publicaciones, pendientes, ideas y métricas del equipo.">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#000000">
-<meta name="color-scheme" content="dark">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="GTAHUB">
-<link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" href="icons/icon-192.png">
-<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="styles.css">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<title>GTAHUB Content Hub</title>
+<link rel="stylesheet" href="hub-app.css">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
 </head>
 <body>
 
-<!-- ============ SETUP: falta conectar Supabase ============ -->
-<div id="setup" class="boot hidden">
-  <div class="boot-card">
-    <div class="boot-head">
-      <div class="mark">GH</div>
-      <div class="mark-line"></div>
-      <div class="mark-sub">Content Hub</div>
-      <div class="sub">Conectar base de datos</div>
-    </div>
-    <div class="boot-body">
-      <p class="lead">
-        Este hub guarda todo en Supabase. Pega la URL y la clave <b>anon / publishable</b>
-        de tu proyecto (Supabase → Project Settings → API).
-      </p>
-      <form id="setup-form">
-        <div class="field">
-          <label for="su-url">Project URL</label>
-          <input id="su-url" type="url" placeholder="https://xxxxxxxx.supabase.co" required>
-        </div>
-        <div class="field">
-          <label for="su-key">Anon / publishable key</label>
-          <input id="su-key" type="text" placeholder="sb_publishable_… o eyJhbGciOi…" required>
-        </div>
-        <button class="btn btn-primary btn-block" type="submit">Conectar</button>
-      </form>
-      <div id="setup-msg" class="msg"></div>
-    </div>
-    <div class="boot-foot">
-      Se guarda solo en este navegador. Para dejarlo fijo para todo el equipo,
-      escribe los valores en <b>config.js</b> del repo.
-    </div>
-  </div>
+<!-- LOGIN -->
+<div id="login">
+<div class="art">
+<span class="stripe"></span>
+<img class="bg" src="hub-art/bg-inicio.jpg" alt="">
+<span class="glow"></span>
+<img class="char" src="hub-art/char-business.png" alt=""><span class="scan"></span><span class="vig"></span><span class="hud tl"></span><span class="hud tr"></span><span class="hud bl"></span><span class="hud br"></span>
+<div class="cap"><h1>EL CONTENIDO DE <em>GTAHUB</em>, EN UN SOLO SITIO</h1><p>Orion · Andromeda · Pegasus. Publicaciones, calendario, tendencias y métricas del equipo, en un panel diseñado para trabajar cada día.</p></div>
+</div>
+<div class="side">
+<div class="lcard">
+<div class="lhead"><div class="in"><div class="gh"><img src="assets/logoGtahub.png" alt="GTAHUB"></div><div><b>CONTENT HUB</b><small>GTAHUB · EQUIPO INTERNO</small></div></div></div>
+<form class="lbody" id="loginForm">
+<div class="fld"><label class="lbl" for="em">Usuario</label><input id="em" type="text" autocapitalize="none" autocomplete="username" required></div>
+<div class="fld"><label class="lbl" for="pw">Contraseña</label><input id="pw" type="password" autocomplete="current-password" required></div>
+<div style="display:flex;align-items:center;justify-content:space-between"><label style="font-size:11.5px;color:var(--tx2);display:flex;gap:8px;align-items:center"><input type="checkbox" checked style="accent-color:var(--crimson)">Mantener sesión</label><span style="font-size:11px;color:var(--tx3)">Acceso del equipo</span></div>
+<div id="loginErr" style="display:none;font-size:12px;color:#ff6b9d;background:rgba(232,0,90,.1);border:1px solid rgba(232,0,90,.3);border-radius:8px;padding:9px 12px"></div>
+<button class="btn" id="loginBtn" type="submit">Entrar al hub</button>
+<div class="lbl" style="text-align:center;margin-top:4px">GTAHUB ESP · GTAHUB PE</div>
+</form>
+</div>
+</div>
 </div>
 
-<!-- ============ LOGIN ============ -->
-<div id="login" class="boot hidden">
-  <div class="boot-card">
-    <div class="boot-head">
-      <div class="mark">GH</div>
-      <div class="mark-line"></div>
-      <div class="mark-sub">Content Hub</div>
-      <div class="sub">Acceso del equipo</div>
-    </div>
-    <div class="boot-body">
-      <form id="login-form">
-        <div class="field">
-          <label for="lg-email">Usuario o correo</label>
-          <input id="lg-email" type="text" autocomplete="username" spellcheck="false"
-                 autocapitalize="none" placeholder="kevinagre" required>
-        </div>
-        <div class="field">
-          <label for="lg-pass">Contraseña</label>
-          <input id="lg-pass" type="password" autocomplete="current-password" placeholder="••••••••" required>
-        </div>
-        <button id="lg-btn" class="btn btn-primary btn-block" type="submit">Entrar</button>
-      </form>
-      <div id="login-msg" class="msg"></div>
-    </div>
-    <div class="boot-foot">© <span class="year"></span> GAMERSHUB LLC · Acceso solo para el equipo</div>
-  </div>
+<!-- CARGA -->
+<div id="boot" class="hide"><div class="in">
+<div class="gh"><img src="assets/logoGtahub.png" alt="GTAHUB"></div>
+<h2>CONTENT HUB</h2>
+<div class="lbl">PREPARANDO TU PANEL</div>
+<div class="bar"><i id="bootBar"></i></div>
+<div class="st" id="bootSt">Conectando con el hub</div>
+</div></div>
+
+<!-- APP -->
+<div id="app" class="hide">
+<aside class="side">
+<div class="lock"><div class="gh"><img src="assets/logoGtahub.png" alt="GTAHUB"></div><div><b>CONTENT HUB</b><small>GTAHUB</small></div></div>
+<div><div class="lbl" style="margin-bottom:8px">MARCA</div><div class="seg" id="brandSeg"><button class="act" data-brand="ALL">TODO</button><button data-brand="ESP">ESP</button><button data-brand="PE">PE</button></div><div class="meta" style="margin-top:8px;white-space:normal">ESP · Orion y Andromeda &nbsp;/&nbsp; PE · Pegasus</div></div>
+<nav class="nav">
+<button class="act" data-view="inicio"><i></i>Inicio</button>
+<button data-view="pendientes"><i></i>Pendientes<span class="cnt" id="cntPend"></span></button>
+<button data-view="publicaciones"><i></i>Publicaciones<span class="cnt" id="cntPub"></span></button>
+<button data-view="calendario"><i></i>Calendario</button>
+<button data-view="ideas"><i></i>Ideas<span class="cnt" id="cntIdeas"></span></button>
+<button data-view="metricas"><i></i>Métricas</button>
+</nav>
+<div class="sidefoot"><div class="av" id="meAv">–</div><div style="flex:1"><div style="font-size:12px;font-weight:600" id="meName">—</div><div class="lbl" style="letter-spacing:2px" id="meRole"></div></div><button class="close" id="logout" title="Cerrar sesión">⏻</button></div>
+</aside>
+<div class="main">
+<div class="top">
+<button class="close" id="sideToggle" title="Plegar menú">≡</button>
+<h2 id="title">INICIO</h2>
+<div class="srch"><input id="globalSearch" placeholder="Buscar publicación, tarea, idea o tendencia…  ⌘K"></div>
+<div style="margin-left:auto;display:flex;gap:8px;align-items:center"><button class="btn gh2 sm" id="mSearch">Buscar</button><span id="notiWrap"><button class="btn gh2 sm" id="notiBtn">Avisos<span class="bdg" id="notiBdg"></span></button><div id="notiPanel"><div class="lbl" style="padding:8px 10px 4px">AVISOS DEL HUB</div><div id="notiList"></div></div></span><button class="btn sm" data-new="publicación">+ Nueva publicación</button></div>
+</div>
+<div class="view" id="view"></div>
+</div>
 </div>
 
-<!-- ============ APP ============ -->
-<div id="app" class="app">
+<nav id="tabbar">
+<button class="act" data-view="inicio"><i></i>Inicio</button>
+<button data-view="pendientes"><i></i>Pend.</button>
+<button data-view="publicaciones"><i></i>Public.</button>
+<button data-view="calendario"><i></i>Calend.</button>
+<button data-view="ideas"><i></i>Ideas</button>
+<button data-view="metricas"><i></i>Métricas</button>
+</nav>
 
-  <aside class="side">
-    <div class="brand">
-      <img class="logo-img" src="icons/icon-192.png" alt="GTAHUB">
-      <div class="name">GTA<span>HUB</span><small>Content Hub</small></div>
-    </div>
+<!-- DRAWER -->
+<div id="scrim"></div>
+<aside id="drawer">
+<div class="dh"><h3 id="dTitle">Detalle</h3><button class="close" id="dClose">×</button></div>
+<div class="dc" id="dBody"></div>
+<div class="df" id="dFoot"></div>
+</aside>
 
-    <div class="seg" id="seg-side"></div>
+<!-- BUSCADOR GLOBAL -->
+<div id="omni"><div class="box"><input id="omniQ" placeholder="Buscar en todo el hub…"><div class="res" id="omniRes"></div></div></div>
 
-    <nav class="nav" id="nav"></nav>
-
-    <div class="side-foot">
-      <div class="who" data-cuenta title="Mi cuenta: nombre y contraseña">
-        <div class="avatar" id="me-avatar">?</div>
-        <div class="meta">
-          <b id="me-name">—</b>
-          <span class="role-badge role-inv" id="me-role">—</span>
-        </div>
-        <span class="who-edit">✎</span>
-      </div>
-      <button class="btn btn-ghost btn-block btn-sm" id="logout">Cerrar sesión</button>
-    </div>
-  </aside>
-
-  <main class="main">
-    <div class="mobile-head">
-      <img class="logo-img" src="icons/icon-192.png" alt="GTAHUB">
-      <div class="name">GTA<span>HUB</span></div>
-      <button class="btn btn-ghost btn-sm out" data-cuenta>Cuenta</button>
-      <button class="btn btn-ghost btn-sm" id="logout-m">Salir</button>
-    </div>
-    <div class="seg seg-m" id="seg-m"></div>
-    <div id="view"></div>
-  </main>
-
-  <nav class="tabbar" id="tabbar"></nav>
-</div>
-
-<div id="modal-root"></div>
-<div id="toast-root"></div>
-
-<script src="config.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<script src="app.js"></script>
+<div class="toast" id="toast"></div>
+<div id="tip"></div>
+<template id="__bundler_thumbnail"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect width="100" height="100" fill="#E8005A"/><rect x="30" y="30" width="40" height="40" rx="6" fill="#fff"/><text x="50" y="57" font-family="Arial Black,sans-serif" font-size="17" fill="#E8005A" text-anchor="middle">HUB</text></svg></template>
+<script src="hub-data.js"></script>
+<script src="hub-api.js"></script>
+<script src="hub-app.js"></script>
 </body>
 </html>

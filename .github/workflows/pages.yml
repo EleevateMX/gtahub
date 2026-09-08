@@ -4,7 +4,10 @@ name: Desplegar en GitHub Pages
 
 on:
   push:
-    branches: [claude/gtahub-dashboard-vercel-ro68wg, main]
+    branches:
+      - claude/gtahub-dashboard-vercel-ro68wg
+      - claude/claude-code-setup-u3fe4l
+      - main
   workflow_dispatch:
 
 permissions:

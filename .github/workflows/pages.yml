@@ -1,16 +1,17 @@
 # Publica el sitio estatico en la rama gh-pages con cada push.
 # GitHub Pages sirve esa rama en https://eleevatemx.github.io/gtahub/
 #
-# Solo dispara en la rama que trae el sitio vigente. La rama vieja
-# (claude/gtahub-dashboard-vercel-ro68wg) todavia contiene el dashboard
-# anterior y este job hace push -f a gh-pages, asi que un push alli
-# devolveria el sitio publicado a la version anterior. Por eso no se lista.
+# Las dos ramas de trabajo llevan el mismo sitio (se igualaron en 89c4206),
+# asi que cualquiera de las dos publica lo correcto. Se listan ambas para que
+# el despliegue siga funcionando sin tocar nada cuando se elimine la que
+# sobre. gh-pages NO va aqui: es la salida del job, no una rama de trabajo.
 name: Desplegar en GitHub Pages
 
 on:
   push:
     branches:
       - claude/claude-code-setup-u3fe4l
+      - claude/gtahub-dashboard-vercel-ro68wg
   workflow_dispatch:
 
 permissions:

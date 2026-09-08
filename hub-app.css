@@ -18,7 +18,7 @@
  --hover:rgba(255,255,255,.04);--hover-soft:rgba(255,255,255,.025);
  --track:rgba(255,255,255,.08);--track2:rgba(255,255,255,.1);
  --sk1:#14141f;--sk2:#1d1d2c;--scroll:#22223a;
- --scrim:rgba(0,0,0,.62);--grid-tx:rgba(255,255,255,.018);
+ --scrim:rgba(0,0,0,.62);--grid-tx:rgba(255,255,255,.018);--tabbar-bg:rgba(15,15,26,.97);
  --shadow:0 1px 0 rgba(255,255,255,.03),0 10px 26px rgba(0,0,0,.35);
  --shadow-pop:0 18px 40px rgba(0,0,0,.55);
  /* plataformas: el color plano pinta puntos y barras */
@@ -41,7 +41,7 @@
  --hover:rgba(11,11,18,.05);--hover-soft:rgba(11,11,18,.03);
  --track:rgba(11,11,18,.09);--track2:rgba(11,11,18,.12);
  --sk1:#E7E7EF;--sk2:#F5F5F9;--scroll:#C7C7D8;
- --scrim:rgba(11,11,18,.45);--grid-tx:rgba(11,11,18,.03);
+ --scrim:rgba(11,11,18,.45);--grid-tx:rgba(11,11,18,.03);--tabbar-bg:rgba(248,248,251,.97);
  --shadow:0 1px 2px rgba(11,11,18,.05),0 8px 22px rgba(11,11,18,.08);
  --shadow-pop:0 18px 40px rgba(11,11,18,.16);
  --ig-tx:#C21E5B;--tt-tx:#00707A;--dc-tx:#3C46C8;--em-tx:#8A5B00;--fb-tx:#0E5FC0;
@@ -53,7 +53,7 @@
  --hover:rgba(11,11,18,.05);--hover-soft:rgba(11,11,18,.03);
  --track:rgba(11,11,18,.09);--track2:rgba(11,11,18,.12);
  --sk1:#E7E7EF;--sk2:#F5F5F9;--scroll:#C7C7D8;
- --scrim:rgba(11,11,18,.45);--grid-tx:rgba(11,11,18,.03);
+ --scrim:rgba(11,11,18,.45);--grid-tx:rgba(11,11,18,.03);--tabbar-bg:rgba(248,248,251,.97);
  --shadow:0 1px 2px rgba(11,11,18,.05),0 8px 22px rgba(11,11,18,.08);
  --shadow-pop:0 18px 40px rgba(11,11,18,.16);
  --ig-tx:#C21E5B;--tt-tx:#00707A;--dc-tx:#3C46C8;--em-tx:#8A5B00;--fb-tx:#0E5FC0;
@@ -161,8 +161,8 @@ button{font-family:inherit;cursor:pointer}
 .p-em{color:var(--em-tx);background:rgba(242,160,7,.12)}.p-em .dot{background:var(--em)}
 .p-fb{color:var(--fb-tx);background:rgba(24,119,242,.14)}.p-fb .dot{background:var(--fb)}
 .tag{font:700 9px/1 Inter;letter-spacing:2px;text-transform:uppercase;padding:5px 8px;border-radius:5px;border:1px solid var(--line);color:var(--tx3);white-space:nowrap}
-.tag.esp{color:var(--esp-tx);border-color:color-mix(in srgb,var(--esp-tx) 34%,transparent)}
-.tag.pe{color:var(--pe-tx);border-color:color-mix(in srgb,var(--pe-tx) 34%,transparent)}
+.tag.esp{color:var(--esp-tx);border-color:var(--line);border-color:color-mix(in srgb,var(--esp-tx) 34%,transparent)}
+.tag.pe{color:var(--pe-tx);border-color:var(--line);border-color:color-mix(in srgb,var(--pe-tx) 34%,transparent)}
 .tag.alta{color:var(--on-crimson);background:var(--crimson);border-color:transparent}
 .tag.media{color:var(--em-tx);border-color:rgba(242,160,7,.35)}
 .tag.baja{color:var(--tx3)}
@@ -476,7 +476,7 @@ button,.row,.trend,.cl,.gcard,.tk,.idea{touch-action:manipulation}
 .lhead b,.lhead small{color:var(--on-crimson)}
 
 /* Chrome que faltaba tokenizar. */
-#tabbar{background:color-mix(in srgb,var(--panel2) 97%,transparent)}
+#tabbar{background:var(--tabbar-bg)}
 #tip{background:var(--tx);color:var(--bg);border-color:var(--tx)}
 #boot:before{background:repeating-linear-gradient(0deg,var(--grid-tx) 0 1px,transparent 1px 32px),repeating-linear-gradient(90deg,var(--grid-tx) 0 1px,transparent 1px 32px)}
 

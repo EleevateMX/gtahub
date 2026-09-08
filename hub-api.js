@@ -35,9 +35,33 @@ function sha256hex(str){
  return[h0,h1,h2,h3,h4,h5,h6,h7].map(x=>(x>>>0).toString(16).padStart(8,'0')).join('');
 }
 
-/* ---------- LOGIN ---------- */
+/* ---------- LOGIN ----------
+ * Primero se intenta `hub_login`, la función que compara el hash dentro de
+ * Postgres: el navegador manda usuario y contraseña, y la base responde solo
+ * con el perfil. Así el salt y el pass_hash nunca salen de la base.
+ *
+ * Si la base todavía no tiene esa función (PostgREST responde 404), se usa el
+ * camino anterior, que baja la fila y compara aquí. Ese camino filtra los
+ * hashes a cualquiera que tenga la llave publishable — o sea, a cualquiera —
+ * así que corre `supabase/login-seguro.sql` para retirarlo. */
 async function hubLogin(userOrEmail,pass){
  const u=userOrEmail.trim().toLowerCase().split('@')[0];
+ const r=await fetch(SB_URL+'/rest/v1/rpc/hub_login',{
+  method:'POST',headers:SB_H,
+  body:JSON.stringify({p_usuario:u,p_password:pass})});
+ if(r.ok){
+  const datos=await r.json();
+  const row=Array.isArray(datos)?datos[0]:datos;
+  if(!row||!row.username)return null;
+  HUB.user={username:row.username,name:row.display_name,role:row.role};
+  return HUB.user;
+ }
+ if(r.status!==404)throw new Error((await r.text()).slice(0,300));
+ return hubLoginSinMigrar(u,pass);
+}
+
+/* Camino de respaldo mientras no se corra supabase/login-seguro.sql. */
+async function hubLoginSinMigrar(u,pass){
  const rows=await api('gtahub_usuarios?username=eq.'+encodeURIComponent(u)+'&select=username,display_name,role,salt,pass_hash');
  const row=rows&&rows[0];
  if(!row||sha256hex(row.salt+':'+pass)!==row.pass_hash)return null;

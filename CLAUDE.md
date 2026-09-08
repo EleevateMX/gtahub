@@ -49,13 +49,24 @@ PostgREST desde `hub-api.js`. Tablas:
   tendencias: solo hay relevancia + análisis.
 - `gtahub_metas`: platform (pk), weekly_goal — metas de cadencia semanal.
 - `gtahub_usuarios`: username (pk), display_name, role, salt, pass_hash.
-  Login: sha256hex(salt + ":" + password) === pass_hash (implementado en hub-api.js).
-  NUNCA guardar contraseñas en claro. El login acepta usuario o correo (se toma
-  la parte antes de la @).
+  Login: la función `hub_login(p_usuario, p_password)` compara
+  sha256(salt || ':' || password) **dentro de Postgres** y devuelve solo
+  username/display_name/role. `anon` no tiene SELECT sobre la tabla, así que el
+  salt y el pass_hash no salen de la base. La creó `supabase/login-seguro.sql`.
+  `hubLogin` en hub-api.js llama esa función y, si responde 404 (base sin
+  migrar), cae a `hubLoginSinMigrar`, que baja la fila y compara en el
+  navegador. Ese respaldo filtra los hashes: si sigue haciendo falta, es que
+  la migración no se ha corrido. NUNCA guardar contraseñas en claro. El login
+  acepta usuario o correo (se toma la parte antes de la @).
 
 Archivos `migracion-v4.sql` y `seed-v4.sql` (en el histórico del proyecto) crearon
 este esquema. RLS: abierto vía anon para tablas de contenido (herramienta interna);
-usuarios solo lectura.
+`gtahub_usuarios` cerrada, solo accesible por `hub_login`.
+
+Pendiente de fondo: el hash es SHA-256 de una pasada, sin estiramiento. Si se
+filtrara un respaldo de la base, las contraseñas caerían rápido. Lo sólido es
+bcrypt (pgcrypto: `crypt`/`gen_salt`) o Supabase Auth; cualquiera de los dos
+obliga al equipo a fijar su contraseña una vez.
 
 ## Convenciones
 

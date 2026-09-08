@@ -1,0 +1,36 @@
+# Publica el sitio estatico en la rama gh-pages con cada push.
+# GitHub Pages sirve esa rama en https://eleevatemx.github.io/gtahub/
+#
+# Las dos ramas de trabajo llevan el mismo sitio (se igualaron en 89c4206),
+# asi que cualquiera de las dos publica lo correcto. Se listan ambas para que
+# el despliegue siga funcionando sin tocar nada cuando se elimine la que
+# sobre. gh-pages NO va aqui: es la salida del job, no una rama de trabajo.
+name: Desplegar en GitHub Pages
+
+on:
+  push:
+    branches:
+      - claude/claude-code-setup-u3fe4l
+      - claude/gtahub-dashboard-vercel-ro68wg
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Publicar en gh-pages
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout --orphan gh-pages
+          git add -A
+          git commit -m "Deploy ${GITHUB_SHA::7}"
+          git push -f origin gh-pages

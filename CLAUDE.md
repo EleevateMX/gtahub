@@ -24,10 +24,52 @@ rutas son relativas para que funcione bajo el subpath `/gtahub/`.
 
 ## Identidad (respetar siempre)
 
-Crimson `#E8005A` sobre negro. Tarjetas `#0B0B12`, paneles `#171720`/`#0f0f1a`,
-bordes `#1a1a2e`. Títulos Archivo Black en MAYÚSCULAS, cuerpo Inter, labels con
-letter-spacing 2–4px. Patrones: `.scan`, `.vig`, `.hud.tl/.tr/.bl/.br`, `.diag`.
-Colores por plataforma en CSS vars: `--ig --tt --dc --em --fb`.
+Crimson `#E8005A` sobre negro. Títulos Archivo Black en MAYÚSCULAS, cuerpo
+Inter, labels con letter-spacing 2–4px. Patrones: `.scan`, `.vig`,
+`.hud.tl/.tr/.bl/.br`, `.diag`.
+
+**Ningún componente escribe un color literal.** Todo sale de los tokens del
+bloque `:root` al inicio de `hub-app.css`. Si necesitas un color nuevo, agrega
+el token con su pareja clara; no pongas un hex en la regla.
+
+- Superficies: `--bg --card --panel --panel2`, bordes `--line --line2 --line3`.
+- Texto: `--tx --tx2 --tx3`. Estados: `--hover --hover-soft --track --track2`.
+- Plataformas: `--ig --tt --dc --em --fb` pintan **rellenos** (puntos, barras).
+  Para **texto** existe la pareja `--ig-tx --tt-tx --dc-tx --em-tx --fb-tx`,
+  más `--ok-tx --bad-tx --esp-tx --pe-tx`, porque el mismo tono no alcanza
+  4.5:1 en los dos temas.
+- El crimson de marca como texto se queda en 4.28:1 sobre la tarjeta oscura,
+  así que los enlaces usan `--crimson-tx`. Los rellenos siguen con `--crimson`.
+
+## Tema claro y oscuro
+
+Oscuro es el tema de la marca y el de partida. El claro se define una sola vez
+y se activa por `prefers-color-scheme` o por `data-theme` en `<html>`. El
+interruptor vive en el pie de la barra lateral (`#themeBtn`).
+
+La preferencia se guarda en `localStorage` (`gtahub.tema`). **Es la única
+excepción a la regla de no persistir nada**: no es dato de sesión, es una
+preferencia de accesibilidad, y perderla en cada visita haría inútil el
+interruptor. Un script en línea dentro de `<head>` la aplica antes del primer
+pintado para que no haya destello.
+
+Hay superficies que son **fotografía** y no siguen el tema: el hero de cada
+vista y el arte del login llevan imagen con degradado oscuro encima, así que su
+texto va en blanco siempre. Están agrupadas en el bloque v4 del CSS.
+
+Ambos temas están medidos: todo el texto pasa 4.5:1 (AA).
+
+## Movimiento
+
+Un solo ritmo, en tokens: `--dur-1` (120ms), `--dur-2` (180ms), `--dur-3`
+(240ms), con `--ease-out` para entradas. No inventes duraciones sueltas.
+`prefers-reduced-motion: reduce` apaga todo el movimiento.
+
+**No simules latencia.** Los datos viven en memoria desde el arranque, así que
+las vistas se pintan de forma síncrona. `render()` esperaba 300ms fijos y el
+drawer otros 300ms antes de dibujar algo que ya tenían; el esqueleto solo debe
+aparecer cuando `HUB.online` todavía es falso. El arranque (`boot()`) sigue a
+la petición real con un piso corto (`BOOT_PISO`) para que no parpadee.
 
 ## Backend (Supabase)
 
@@ -73,7 +115,8 @@ obliga al equipo a fijar su contraseña una vez.
 - Sin frameworks ni CDNs. UI en español, fechas es-MX.
 - Los mapeos DB↔UI viven SOLO en hub-api.js (`mapPost/mapTask/mapIdea/mapTrend`
   y `PF_DB/DB_PF/ST_DB/DB_ST`). Si agregas un campo, tócalo ahí.
-- Nada de localStorage/sessionStorage: la sesión vive en memoria (login por visita).
+- Nada de localStorage/sessionStorage para datos: la sesión vive en memoria
+  (login por visita). La única clave guardada es `gtahub.tema`.
 - Toda escritura con `persist()` para mantener datos frescos y toasts coherentes.
 - Los formularios de creación se renderizan en el drawer (`newForm` en hub-app.js).
 - Thumbs: si la publicación no tiene `thumb` (URL), se usa un arte por plataforma

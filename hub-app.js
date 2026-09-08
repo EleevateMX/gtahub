@@ -37,21 +37,31 @@ $('#loginForm').addEventListener('submit',async e=>{
   b.disabled=false;b.textContent='Entrar al hub'}
 });
 const BOOTSTEPS=['Conectando con el hub','Sincronizando GTAHUB ESP','Sincronizando GTAHUB PE','Cargando calendario y métricas','Listo'];
+/* Piso corto para que la pantalla de carga no parpadee cuando la
+   respuesta es muy rápida. Antes los pasos avanzaban con un
+   temporizador fijo de 320ms cada uno más 300ms al final: 1.6s
+   mínimo aunque los datos llegaran en 100ms. Ahora los pasos
+   intermedios son informativos y el último lo marca la petición. */
+const BOOT_PISO=420;
 function boot(){
  $('#login').classList.add('hide');$('#boot').classList.remove('hide');
- let i=0,loaded=false,failed=null;
- hubLoad().then(()=>loaded=true).catch(e=>failed=e);
- const tick=()=>{
-  $('#bootBar').style.width=((i+1)/BOOTSTEPS.length*100)+'%';$('#bootSt').textContent=BOOTSTEPS[i];i++;
-  if(i<BOOTSTEPS.length)setTimeout(tick,320);
-  else{const fin=()=>{
-    if(failed){$('#bootSt').textContent='Sin conexión con la base. Reintentando…';
-     hubLoad().then(()=>{enter()}).catch(()=>{$('#bootSt').textContent='No se pudo conectar. Recarga la página.'});return}
-    if(!loaded){setTimeout(fin,250);return}
-    enter()};
-   setTimeout(fin,300)}
+ const t0=performance.now();
+ let paso=0;
+ const pinta=()=>{$('#bootBar').style.width=Math.round((paso+1)/BOOTSTEPS.length*100)+'%';
+  $('#bootSt').textContent=BOOTSTEPS[paso]};
+ pinta();
+ // Avanza solo hasta el penúltimo paso: el último lo cierra la carga real.
+ const avance=setInterval(()=>{if(paso<BOOTSTEPS.length-2){paso++;pinta()}},130);
+ const terminar=()=>{
+  clearInterval(avance);paso=BOOTSTEPS.length-1;pinta();
+  setTimeout(enter,Math.max(0,BOOT_PISO-(performance.now()-t0)));
  };
- tick();
+ const reintentar=()=>{
+  clearInterval(avance);
+  $('#bootSt').textContent='Sin conexión con la base. Reintentando…';
+  hubLoad().then(terminar).catch(()=>{$('#bootSt').textContent='No se pudo conectar. Recarga la página.'});
+ };
+ hubLoad().then(terminar).catch(reintentar);
 }
 function enter(){
  $('#boot').classList.add('hide');$('#app').classList.remove('hide');
@@ -76,6 +86,7 @@ document.addEventListener('keydown',e=>{
 });
 
 function skeleton(n=5){return `<div class="card">${'<div class="skrow"><div class="sk" style="width:38px;height:38px"></div><div style="flex:1"><div class="sk" style="height:11px;width:52%"></div><div class="sk" style="height:9px;width:28%;margin-top:7px"></div></div><div class="sk" style="width:74px;height:22px"></div></div>'.repeat(n)}</div>`}
+const VISTAS={inicio:vInicio,pendientes:vPend,publicaciones:vPub,calendario:vCal,ideas:vIdeas,metricas:vMet};
 function render(){
  $('#title').textContent=TITLES[view];
  $('#cntPend').textContent=TASKS.filter(t=>t.col!=='done').length||'';
@@ -83,10 +94,20 @@ function render(){
  $('#cntIdeas').textContent=IDEAS.length||'';
  $('#notiBdg').textContent=buildNotis().length||'';
  const v=$('#view');
- v.innerHTML=`<div class="sk" style="height:210px;border-radius:14px"></div><div class="g4">${'<div class="card" style="height:108px"><div class="sk" style="height:9px;width:50%"></div><div class="sk" style="height:26px;width:38%;margin-top:14px"></div></div>'.repeat(4)}</div>${skeleton()}`;
  v.scrollTop=0;
- clearTimeout(render._h);
- render._h=setTimeout(()=>{v.innerHTML=({inicio:vInicio,pendientes:vPend,publicaciones:vPub,calendario:vCal,ideas:vIdeas,metricas:vMet})[view]();v.classList.remove('in');void v.offsetWidth;v.classList.add('in');wire()},300);
+ /* Los datos viven en memoria desde el arranque: armar la vista es
+    trabajo síncrono de unos pocos milisegundos. Antes se pintaba un
+    esqueleto y se esperaban 300ms fijos antes de dibujar de verdad,
+    lo que sumaba más de medio segundo a cada cambio de pestaña sin
+    que hubiera nada que esperar. El esqueleto solo aparece si de
+    verdad todavía no hay datos. */
+ if(!HUB.online){
+  v.innerHTML=`<div class="sk" style="height:210px;border-radius:14px"></div><div class="g4">${'<div class="card" style="height:108px"><div class="sk" style="height:9px;width:50%"></div><div class="sk" style="height:26px;width:38%;margin-top:14px"></div></div>'.repeat(4)}</div>${skeleton()}`;
+  return;
+ }
+ v.innerHTML=VISTAS[view]();
+ v.classList.remove('in');void v.offsetWidth;v.classList.add('in');
+ wire();
 }
 const HERO_SUB={
  inicio:()=>'Todo lo que sale de GTAHUB ESP y GTAHUB PE, en una sola vista.',
@@ -332,7 +353,7 @@ function searchTrends(v){
  },380);
 }
 /* ---------- PANEL LATERAL ---------- */
-function drawer(title,body,foot,instant){
+function drawer(title,body,foot){
  $('#dTitle').textContent=title;
  $('#dFoot').innerHTML=foot||'';$('#drawer').classList.add('on');$('#scrim').classList.add('on');
  const paint=()=>{$('#dBody').innerHTML=body;
@@ -343,17 +364,16 @@ function drawer(title,body,foot,instant){
    $('#chkProg').style.width=(done/p.chkState.length*100)+'%';$('#chkNum').textContent=done+'/'+p.chkState.length;
    try{await dbPatchPost(p.id,{chk_state:p.chkState})}catch(e){oops(e)}
   })};
- if(instant)paint();
- else{$('#dBody').innerHTML='<div class="sk" style="height:190px;border-radius:10px"></div><div class="sk" style="height:12px;width:60%"></div><div class="sk" style="height:12px;width:40%"></div>';setTimeout(paint,300)}
+ paint();   // la ficha se arma con datos que ya están cargados
 }
 const closeDrawer=()=>{$('#drawer').classList.remove('on');$('#scrim').classList.remove('on')};
 $('#dClose').onclick=closeDrawer;$('#scrim').onclick=closeDrawer;
 function openPost(id){const p=POSTS.find(x=>x.id===id);if(!p)return;const done=p.chkState.filter(Boolean).length;
  drawer(p.t,`<div class="previewwrap"><img class="prev" src="${p.thumb}" alt=""><span class="scan"></span><span class="hud tl"></span><span class="hud tr"></span><span class="hud bl"></span><span class="hud br"></span></div>
  <div style="display:flex;gap:7px;flex-wrap:wrap">${pill(p.pf)}<span class="st ${p.st}">${p.st.toUpperCase()}</span><span class="tag ${p.brand==='ESP'?'esp':'pe'}">${(p.srv||p.brand).toUpperCase()}</span></div>
- <dl class="kv"><dt>Publicación</dt><dd>${dlabel(p.d)}${p.h?' · '+p.h:''}</dd><dt>Formato</dt><dd>${p.fmt}</dd><dt>Responsable</dt><dd>${p.owner}</dd>${p.url?`<dt>Enlace</dt><dd><a href="${p.url}" target="_blank" style="color:var(--crimson)">${p.url}</a></dd>`:''}<dt>Alcance</dt><dd>${p.reach?fmt(p.reach)+' · '+fmt(p.eng)+' interacciones · '+(p.eng/p.reach*100).toFixed(1)+'%':'Pendiente de publicar'}</dd></dl>
+ <dl class="kv"><dt>Publicación</dt><dd>${dlabel(p.d)}${p.h?' · '+p.h:''}</dd><dt>Formato</dt><dd>${p.fmt}</dd><dt>Responsable</dt><dd>${p.owner}</dd>${p.url?`<dt>Enlace</dt><dd><a href="${p.url}" target="_blank" style="color:var(--crimson-tx)">${p.url}</a></dd>`:''}<dt>Alcance</dt><dd>${p.reach?fmt(p.reach)+' · '+fmt(p.eng)+' interacciones · '+(p.eng/p.reach*100).toFixed(1)+'%':'Pendiente de publicar'}</dd></dl>
  ${p.copy?`<div><div class="lbl" style="margin-bottom:8px">TEXTO DE LA PUBLICACIÓN</div><div class="copybox">${p.copy}</div></div>`:''}
- ${p.chk.length?`<div><div class="lbl" style="margin-bottom:10px;display:flex;justify-content:space-between">CHECKLIST<span id="chkNum" style="color:var(--crimson)">${done}/${p.chkState.length}</span></div><div class="tr mini" style="margin-bottom:12px"><i id="chkProg" style="width:${done/p.chkState.length*100}%"></i></div><div class="chkl">${p.chk.map((c,i)=>`<label><input type="checkbox" data-chk="${p.id}:${i}" ${p.chkState[i]?'checked':''}><span>${c}</span></label>`).join('')}</div></div>`:''}`,
+ ${p.chk.length?`<div><div class="lbl" style="margin-bottom:10px;display:flex;justify-content:space-between">CHECKLIST<span id="chkNum" style="color:var(--crimson-tx)">${done}/${p.chkState.length}</span></div><div class="tr mini" style="margin-bottom:12px"><i id="chkProg" style="width:${done/p.chkState.length*100}%"></i></div><div class="chkl">${p.chk.map((c,i)=>`<label><input type="checkbox" data-chk="${p.id}:${i}" ${p.chkState[i]?'checked':''}><span>${c}</span></label>`).join('')}</div></div>`:''}`,
  `<button class="btn gh2" id="pCopy">Copiar texto</button>${p.st!=='publicada'?`<button class="btn gh2" id="pDate">Reprogramar</button><button class="btn" style="flex:1" id="pPub">Marcar publicada</button>`:`<button class="btn" style="flex:1" id="pMet">Registrar métricas</button>`}<button class="btn gh2" id="pDel" title="Eliminar">✕</button>`);
  setTimeout(()=>{
   const c=$('#pCopy');if(c)c.onclick=()=>{navigator.clipboard&&navigator.clipboard.writeText(p.copy||p.t);toast('Texto copiado al portapapeles')};
@@ -367,7 +387,10 @@ function openPost(id){const p=POSTS.find(x=>x.id===id);if(!p)return;const done=p
    persist(()=>dbDeletePost(p.id),'Publicación eliminada');closeDrawer()};
  },instantDelay());
 }
-const instantDelay=()=>320;
+/* La ficha del drawer se pinta de forma síncrona, así que los
+   manejadores se pueden enganchar en el siguiente tick. Antes
+   esperaban 320ms a que terminara un esqueleto simulado. */
+const instantDelay=()=>0;
 function openTask(id){const t=TASKS.find(x=>x.id===id);if(!t)return;const di=dueInfo(t);
  drawer(t.t,`<div style="display:flex;gap:7px;flex-wrap:wrap"><span class="tag ${t.prio}">${t.prio.toUpperCase()}</span><span class="tag ${t.brand==='ESP'?'esp':'pe'}">${(t.srv||t.brand).toUpperCase()}</span>${t.pf?pill(t.pf):''}</div>
  ${t.desc?`<p style="color:var(--tx2);font-size:12.5px">${t.desc}</p>`:''}
@@ -405,7 +428,7 @@ function openIdea(id){const i=IDEAS.find(x=>x.id===id);if(!i)return;
 function openTrend(id){const r=TRENDS.find(x=>x.id===id);if(!r)return;
  drawer(r.t,`<div style="display:flex;gap:7px;flex-wrap:wrap"><span class="st ${REL_ST[r.rel]||'borrador'}">RELEVANCIA ${r.rel.toUpperCase()}</span>${r.d?`<span class="tag esp">${dlabel(r.d).toUpperCase()}</span>`:''}</div>
  <div><div class="lbl" style="margin-bottom:8px">ANÁLISIS</div><div class="copybox">${r.note}</div></div>
- ${r.src?`<dl class="kv"><dt>Fuente</dt><dd><a href="${r.src}" target="_blank" style="color:var(--crimson)">Abrir fuente ↗</a></dd></dl>`:''}
+ ${r.src?`<dl class="kv"><dt>Fuente</dt><dd><a href="${r.src}" target="_blank" style="color:var(--crimson-tx)">Abrir fuente ↗</a></dd></dl>`:''}
  <div><div class="lbl" style="margin-bottom:8px">IDEAS RELACIONADAS</div>${IDEAS.slice(0,3).map(i=>`<div class="row" data-idea="${i.id}"><div class="t">${i.t}<div class="meta" style="margin-top:3px">Impacto ${i.imp}/5 · esfuerzo ${i.eff}/5</div></div>${brandTag(i.brand)}</div>`).join('')||'<div class="meta">Todavía no hay ideas. Crea una desde esta tendencia.</div>'}</div>`,
  `<button class="btn" style="flex:1" id="rIdea">Crear idea desde la tendencia</button>`);
  setTimeout(()=>{
@@ -465,3 +488,37 @@ function wireCalDnD(){
 }
 /* ---- plegar la barra lateral ---- */
 $('#sideToggle').addEventListener('click',()=>{sideOpen=!sideOpen;document.querySelector('#app').classList.toggle('narrow',!sideOpen)});
+
+
+/* ---- tema claro / oscuro ----
+   La preferencia se guarda en localStorage. Es la única excepción a
+   la regla de no persistir nada en el navegador: no es dato de
+   sesión, es una preferencia de accesibilidad, y perderla en cada
+   visita haría inútil el interruptor. Sin elección guardada se
+   respeta la del sistema operativo. */
+const TEMA_CLAVE='gtahub.tema';
+function temaGuardado(){try{return localStorage.getItem(TEMA_CLAVE)}catch(e){return null}}
+function temaActivo(){
+ const g=temaGuardado();
+ if(g==='light'||g==='dark')return g;
+ return matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';
+}
+function aplicarTema(t){
+ document.documentElement.dataset.theme=t;
+ try{localStorage.setItem(TEMA_CLAVE,t)}catch(e){}
+ const m=document.querySelector('meta[name=theme-color]:not([media])')||(()=>{
+  const n=document.createElement('meta');n.name='theme-color';document.head.appendChild(n);return n})();
+ m.content=t==='light'?'#F1F1F6':'#000000';
+ const b=$('#themeBtn');
+ if(b)b.setAttribute('aria-label',t==='light'?'Cambiar a tema oscuro':'Cambiar a tema claro');
+}
+$('#themeBtn').addEventListener('click',()=>{
+ const nuevo=temaActivo()==='light'?'dark':'light';
+ aplicarTema(nuevo);
+ toast(nuevo==='light'?'Tema claro':'Tema oscuro');
+});
+// Sin elección propia, seguir al sistema si el usuario lo cambia en caliente.
+matchMedia('(prefers-color-scheme: light)').addEventListener('change',()=>{
+ if(!temaGuardado())aplicarTema(temaActivo());
+});
+aplicarTema(temaActivo());

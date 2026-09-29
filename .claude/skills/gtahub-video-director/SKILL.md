@@ -12,6 +12,7 @@ Archivos del skill:
 - `elementos.md` — biblioteca de elementos intercambiables: personajes, escenarios, cámaras, iluminación, actividad ambiental, cierres, hooks.
 - `ejemplos.md` — prompts completos ya armados con el master.
 - `investigacion.md` — qué responde bien Higgsfield/Kling según fuentes, y cómo se tradujo a estas reglas.
+- `brief-claude-design.md` — brief listo para pegar en Claude Design: la vista ESTUDIO del hub (builder por piezas, galería tipo Midjourney, drawer y flujo de refinado).
 
 Flujo de trabajo: leer el pedido → identificar la variante (`master-prompt.md`) → llenar los slots con piezas de `elementos.md` → verificar presupuesto de caracteres y checklist → entregar PROMPT primero.
 

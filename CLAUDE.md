@@ -21,6 +21,9 @@ rutas son relativas para que funcione bajo el subpath `/gtahub/`.
 - `hub-app.js` — estado, vistas e interacciones. Toda escritura pasa por
   `persist(fn, msg)` que guarda → recarga → re-renderiza → toast.
 - `assets/`, `hub-art/` — logo, fondos y personajes.
+- `.claude/skills/gtahub-video-director/` — skill de dirección de video IA: master prompt
+  modular para Higgsfield / Kling (`master-prompt.md`), elementos intercambiables
+  (`elementos.md`), ejemplos y notas de investigación. No es parte de la app.
 
 ## Identidad (respetar siempre)
 

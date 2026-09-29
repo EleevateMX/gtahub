@@ -48,3 +48,11 @@ Todo lo anterior YA está conectado a Supabase: login real, CRUD de publicacione
 tareas e ideas, kanban y calendario persistentes, checklist guardada, métricas y
 cadencia calculadas desde datos reales, avisos generados desde el estado, y radar
 de tendencias alimentado cada lunes por Claude. Detalles en `CLAUDE.md`.
+
+## Skill: director de video IA
+
+En `.claude/skills/gtahub-video-director/` vive el master prompt modular para
+Higgsfield / Kling 3.0 (single shot, multishot, start/end frame, imagen previa
+y motion control), con la biblioteca de elementos intercambiables, ejemplos
+armados y las notas de investigación. Claude Code lo carga solo cuando se pide
+un prompt de video o imagen para GTAHUB.

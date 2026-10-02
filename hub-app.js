@@ -3,7 +3,7 @@ let pubSort={k:'d',dir:-1},sideOpen=true,undoFn=null;
 let brand='ALL',view='inicio',selDay=todayISO(),selMonth=todayISO().slice(0,7),
     pubFilter='todas',pfFilter=null,pubMode='tabla',taskFilter='todas',
     ideaFilter='todas',ideaSort='impacto',period='30';
-const byBrand=a=>brand==='ALL'?a:a.filter(x=>x.brand===brand);
+const byBrand=a=>brand==='ALL'?a:a.filter(x=>normMarca(x.brand)===brand);
 const toast=(m,undo)=>{const t=$('#toast');undoFn=undo||null;t.innerHTML='<span>'+m+'</span>'+(undo?'<button class="btn gh2 sm" id="undoBtn">Deshacer</button>':'');t.classList.add('on');
  if(undo)$('#undoBtn').onclick=async()=>{await undoFn();undoFn=null;t.classList.remove('on');render();toast('Cambio deshecho')};
  clearTimeout(t._h);t._h=setTimeout(()=>t.classList.remove('on'),undo?5200:2200)};
@@ -68,6 +68,7 @@ function enter(){
  const u=HUB.user||{name:'Equipo',role:''};
  $('#meName').textContent=u.name;$('#meRole').textContent=(u.role||'').toUpperCase();
  $('#meAv').textContent=u.name.slice(0,2).toUpperCase();
+ pintarServidores();
  render();
 }
 $('#logout').addEventListener('click',()=>location.reload());
@@ -75,18 +76,34 @@ $('#logout').addEventListener('click',()=>location.reload());
 /* ---------- NAVEGACIÓN ---------- */
 $$('[data-view]').forEach(b=>b.addEventListener('click',()=>go(b.dataset.view)));
 function go(v){if(view===v)return;view=v;$$('[data-view]').forEach(b=>b.classList.toggle('act',b.dataset.view===v));render()}
-$$('#brandSeg button').forEach(b=>b.addEventListener('click',()=>{brand=b.dataset.brand;$$('#brandSeg button').forEach(x=>x.classList.toggle('act',x===b));render()}));
-const VIEWS=['inicio','pendientes','publicaciones','calendario','ideas','metricas'];
-const TITLES={inicio:'INICIO',pendientes:'PENDIENTES',publicaciones:'PUBLICACIONES',calendario:'CALENDARIO',ideas:'IDEAS',metricas:'MÉTRICAS'};
+$$('#brandSeg button').forEach(b=>b.addEventListener('click',()=>{
+ brand=b.dataset.brand;
+ $$('#brandSeg button').forEach(x=>x.classList.toggle('act',x===b));
+ pintarServidores();render();
+}));
+/* Lista legible de los servidores en juego segun la marca activa. */
+function listaServidores(){
+ const ids=brand==='ALL'?MARCA_IDS:[normMarca(brand)];
+ const s=ids.flatMap(id=>MARCAS[id].servidores);
+ return s.length>1?s.slice(0,-1).join(', ')+' y '+s[s.length-1]:s[0];
+}
+/* Pie del selector: que marca se esta viendo y con que servidores. */
+function pintarServidores(){
+ const el=$('#brandSrv');if(!el)return;
+ el.innerHTML=(brand==='ALL'?MARCA_IDS:[normMarca(brand)])
+  .map(id=>`<span class="bsrv"><b class="tag ${MARCAS[id].clase}">${id}</b>${MARCAS[id].servidores.join(' · ')}</span>`).join('');
+}
+const VIEWS=['inicio','pendientes','publicaciones','calendario','ideas','metricas','brief'];
+const TITLES={inicio:'INICIO',pendientes:'PENDIENTES',publicaciones:'PUBLICACIONES',calendario:'CALENDARIO',ideas:'IDEAS',metricas:'MÉTRICAS',brief:'BRIEF'};
 document.addEventListener('keydown',e=>{
  if($('#login').classList.contains('hide')===false)return;
  if(e.key==='Escape'){closeDrawer();$('#omni').classList.remove('on');$('#notiPanel').classList.remove('on')}
  if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();openOmni()}
- if(!e.metaKey&&!e.ctrlKey&&/^[1-6]$/.test(e.key)&&document.activeElement.tagName!=='INPUT'&&document.activeElement.tagName!=='TEXTAREA'){go(VIEWS[+e.key-1])}
+ if(!e.metaKey&&!e.ctrlKey&&/^[1-7]$/.test(e.key)&&document.activeElement.tagName!=='INPUT'&&document.activeElement.tagName!=='TEXTAREA'){go(VIEWS[+e.key-1])}
 });
 
 function skeleton(n=5){return `<div class="card">${'<div class="skrow"><div class="sk" style="width:38px;height:38px"></div><div style="flex:1"><div class="sk" style="height:11px;width:52%"></div><div class="sk" style="height:9px;width:28%;margin-top:7px"></div></div><div class="sk" style="width:74px;height:22px"></div></div>'.repeat(n)}</div>`}
-const VISTAS={inicio:vInicio,pendientes:vPend,publicaciones:vPub,calendario:vCal,ideas:vIdeas,metricas:vMet};
+const VISTAS={inicio:vInicio,pendientes:vPend,publicaciones:vPub,calendario:vCal,ideas:vIdeas,metricas:vMet,brief:vBrief};
 function render(){
  $('#title').textContent=TITLES[view];
  $('#cntPend').textContent=TASKS.filter(t=>t.col!=='done').length||'';
@@ -110,13 +127,17 @@ function render(){
  wire();
 }
 const HERO_SUB={
- inicio:()=>'Todo lo que sale de GTAHUB ESP y GTAHUB PE, en una sola vista.',
- pendientes:()=>`${byBrand(TASKS).filter(t=>t.col!=='done').length} tareas abiertas entre Orion, Andromeda y Pegasus.`,
+ inicio:()=>brand==='ALL'
+  ?`Todo lo que sale de ${MARCA_IDS.map(i=>MARCAS[i].nombre).join(', ').replace(/, ([^,]*)$/,' y $1')}, en una sola vista.`
+  :`${marca(brand).nombre} · ${marca(brand).idioma} · ${servidoresDe(brand).join(' y ')}.`,
+ brief:()=>brand==='ALL'?'La guía de voz de cada marca, para que todo lo que se genere suene igual.'
+  :`Cómo habla ${marca(brand).nombre} y con qué cuentas sale.`,
+ pendientes:()=>`${byBrand(TASKS).filter(t=>t.col!=='done').length} tareas abiertas entre ${listaServidores()}.`,
  publicaciones:()=>`${byBrand(POSTS).length} piezas publicadas, programadas y en borrador.`,
  calendario:()=>calTitle(selMonth)+' · '+byBrand(POSTS).filter(p=>p.d&&p.d.startsWith(selMonth)).length+' publicaciones en el mes.',
  ideas:()=>`${byBrand(IDEAS).length} ideas priorizadas por impacto y esfuerzo, cruzadas con el radar de tendencias.`,
  metricas:()=>{const s=periodPosts(period);return `Últimos ${period} días · ${fmt(s.reduce((a,p)=>a+p.reach,0))} de alcance y ${fmt(s.reduce((a,p)=>a+p.eng,0))} interacciones.`}};
-function hero(extra=''){const h=HEROES[view];return `<div class="hero"><img class="bg" src="${h.bg}" alt=""><span class="glow"></span><img class="char" src="${h.char}" alt=""><span class="diag"></span><span class="scan"></span><span class="vig"></span><span class="hud tl"></span><span class="hud tr"></span><span class="hud bl"></span><span class="hud br"></span><div class="in"><div class="lbl" style="margin-bottom:9px">GTAHUB · ${brand==='ALL'?'ESP + PE':brand}</div><h3>${h.h}</h3><p>${HERO_SUB[view]()}</p>${extra}</div></div>`}
+function hero(extra=''){const h=HEROES[view];return `<div class="hero"><img class="bg" src="${h.bg}" alt=""><span class="glow"></span><img class="char" src="${h.char}" alt=""><span class="diag"></span><span class="scan"></span><span class="vig"></span><span class="hud tl"></span><span class="hud tr"></span><span class="hud bl"></span><span class="hud br"></span><div class="in"><div class="lbl" style="margin-bottom:9px">GTAHUB · ${brand==='ALL'?MARCA_IDS.join(' + '):normMarca(brand)}</div><h3>${h.h}</h3><p>${HERO_SUB[view]()}</p>${extra}</div></div>`}
 const kpi=(l,n,d,spark)=>`<div class="kpi"><div class="lbl">${l}</div><div class="n">${n}</div><div class="d">${d}</div>${spark?`<div class="kspark">${spark.map(v=>`<i style="height:${v}%"></i>`).join('')}</div>`:''}</div>`;
 function sparkOf(vals){const m=Math.max(1,...vals);return vals.map(v=>Math.max(8,Math.round(v/m*100)))}
 function pubIn(ps,from,to){return ps.filter(p=>p.st==='publicada'&&p.d&&p.d>=from&&p.d<to)}
@@ -134,7 +155,18 @@ function vInicio(){
  const cadKeys=['ig','tt','dc','em','fb'];
  const wkFrom=mondayISO(),wkTo=mondayISO(1);
  const cad=cadKeys.map(k=>[k,pubIn(ps,wkFrom,wkTo).filter(p=>p.pf===k).length,HUB.metas[k]||1]);
+ /* Con las tres marcas juntas, los totales no dicen de quien es que:
+    esta tira reparte el mismo dato por marca y deja entrar a cada una. */
+ const desglose=brand!=='ALL'?'':`<div class="marcas">${MARCA_IDS.map(id=>{
+  const mp=POSTS.filter(x=>normMarca(x.brand)===id),mt=TASKS.filter(x=>normMarca(x.brand)===id);
+  const abiertas=mt.filter(x=>x.col!=='done').length;
+  const atrasadas=mt.filter(x=>x.col!=='done'&&dueInfo(x).late).length;
+  return `<button class="mcard" data-brand-go="${id}">
+   <span class="mhead"><b class="tag ${MARCAS[id].clase}">${id}</b><span class="meta">${MARCAS[id].servidores.join(' · ')}</span></span>
+   <span class="mnums"><span><i>${pubIn(mp,daysAgoISO(7),'9999').length}</i>publicadas 7d</span><span><i>${mp.filter(x=>x.st!=='publicada').length}</i>en cola</span><span><i class="${atrasadas?'dn':''}">${abiertas}</i>pendientes</span></span>
+  </button>`}).join('')}</div>`;
  return hero(`<div style="display:flex;gap:8px;margin-top:16px"><button class="btn sm" data-new="publicación">+ Nueva publicación</button><button class="btn gh2 sm" data-goto="calendario">Ver calendario</button></div>`)
+ +desglose
  +`<div class="g4">
  ${kpi('PUBLICADAS · 7 DÍAS',p7,p7>=p7prev?`<span class="up">▲ +${p7-p7prev}</span> vs. semana previa`:`<span class="dn">▼ ${p7-p7prev}</span> vs. semana previa`,sparkOf(wkSeries))}
  ${kpi('PROGRAMADAS',prog.length,`${in48} en las próximas 48 h`)}
@@ -158,7 +190,7 @@ function emptyState(m){return `<div class="empty"><img src="hub-art/char-woman.p
 /* ---------- PENDIENTES (kanban con arrastre) ---------- */
 function vPend(){
  const ts=byBrand(TASKS).filter(t=>taskFilter==='todas'||t.prio===taskFilter);
- const col=(k,n)=>`<div class="col" data-col="${k}"><h3>${n} <em>${ts.filter(t=>t.col===k).length}</em></h3><div class="drop" data-drop="${k}">${ts.filter(t=>t.col===k).map(t=>{const di=dueInfo(t);return `<div class="tk" draggable="true" data-task="${t.id}"${t.col==='done'?' style="opacity:.75"':''}><span class="prio ${t.prio}"></span><div class="tt">${t.t}</div><div class="mt"><span class="tag ${t.prio}">${t.prio.toUpperCase()}</span><span class="tag ${t.brand==='ESP'?'esp':'pe'}">${(t.srv||t.brand).toUpperCase()}</span></div>${t.col==='prog'?`<div class="tr mini"><i style="width:${t.prog}%"></i></div>`:''}<div class="ft"><span class="who"><span class="av xs">${t.owner.slice(0,2).toUpperCase()}</span>${t.owner}</span><span${di.late?' style="color:var(--bad)"':''}>${di.label}</span></div></div>`}).join('')||'<div class="meta" style="padding:12px 4px">Suelta una tarjeta aquí.</div>'}</div></div>`;
+ const col=(k,n)=>`<div class="col" data-col="${k}"><h3>${n} <em>${ts.filter(t=>t.col===k).length}</em></h3><div class="drop" data-drop="${k}">${ts.filter(t=>t.col===k).map(t=>{const di=dueInfo(t);return `<div class="tk" draggable="true" data-task="${t.id}"${t.col==='done'?' style="opacity:.75"':''}><span class="prio ${t.prio}"></span><div class="tt">${t.t}</div><div class="mt"><span class="tag ${t.prio}">${t.prio.toUpperCase()}</span><span class="tag ${marca(t.brand).clase}"">${(t.srv||t.brand).toUpperCase()}</span></div>${t.col==='prog'?`<div class="tr mini"><i style="width:${t.prog}%"></i></div>`:''}<div class="ft"><span class="who"><span class="av xs">${t.owner.slice(0,2).toUpperCase()}</span>${t.owner}</span><span${di.late?' style="color:var(--bad)"':''}>${di.label}</span></div></div>`}).join('')||'<div class="meta" style="padding:12px 4px">Suelta una tarjeta aquí.</div>'}</div></div>`;
  return hero()+`<div class="fbar">${['todas','alta','media','baja'].map(f=>`<button class="chip ${taskFilter===f?'act':''}" data-tf="${f}">${f.toUpperCase()} · ${f==='todas'?byBrand(TASKS).length:byBrand(TASKS).filter(t=>t.prio===f).length}</button>`).join('')}<span class="meta" style="margin-left:auto">Arrastra las tarjetas entre columnas</span><button class="btn sm" data-new="tarea">+ Nueva tarea</button></div>
  <div class="kb">${col('todo','POR HACER')}${col('prog','EN PROGRESO')}${col('done','LISTO')}</div>`;
 }
@@ -185,7 +217,7 @@ function vPub(){
  ps=[...ps].sort((a,b)=>{const k=pubSort.k,x=a[k]??'',y=b[k]??'';return (x<y?-1:x>y?1:0)*pubSort.dir});
  const ar=(k)=>pubSort.k===k?(pubSort.dir===1?' ▲':' ▼'):'';
  const table=`<div class="card" style="padding:16px 16px 6px"><div class="tblwrap"><table><thead><tr><th class="so" data-sort="t" style="width:36%">PUBLICACIÓN${ar('t')}</th><th class="so" data-sort="brand">MARCA${ar('brand')}</th><th class="so" data-sort="pf">PLATAFORMA${ar('pf')}</th><th class="so" data-sort="st">ESTADO${ar('st')}</th><th class="so" data-sort="d">FECHA${ar('d')}</th><th class="so" data-sort="reach" style="text-align:right">ALCANCE${ar('reach')}</th><th class="so" data-sort="eng" style="text-align:right">INTERACC.${ar('eng')}</th></tr></thead><tbody>
- ${ps.map(p=>`<tr data-post="${p.id}"><td><div style="display:flex;align-items:center;gap:11px"><img class="thumb" src="${p.thumb}" alt=""><b>${p.t}</b></div></td><td><span class="tag ${p.brand==='ESP'?'esp':'pe'}">${(p.srv||p.brand).toUpperCase()}</span></td><td>${pill(p.pf)}</td><td><span class="st ${p.st}">${p.st.toUpperCase()}</span></td><td>${dlabel(p.d)}${p.h?' · '+p.h:''}</td><td style="text-align:right">${p.reach?'<b>'+fmt(p.reach)+'</b>':'—'}</td><td style="text-align:right">${p.eng?fmt(p.eng):'—'}</td></tr>`).join('')}</tbody></table></div></div>`;
+ ${ps.map(p=>`<tr data-post="${p.id}"><td><div style="display:flex;align-items:center;gap:11px"><img class="thumb" src="${p.thumb}" alt=""><b>${p.t}</b></div></td><td><span class="tag ${marca(p.brand).clase}">${(p.srv||p.brand).toUpperCase()}</span></td><td>${pill(p.pf)}</td><td><span class="st ${p.st}">${p.st.toUpperCase()}</span></td><td>${dlabel(p.d)}${p.h?' · '+p.h:''}</td><td style="text-align:right">${p.reach?'<b>'+fmt(p.reach)+'</b>':'—'}</td><td style="text-align:right">${p.eng?fmt(p.eng):'—'}</td></tr>`).join('')}</tbody></table></div></div>`;
  const gal=`<div class="gal">${ps.map(p=>`<figure class="gcard" data-post="${p.id}"><img src="${p.thumb}" alt=""><span class="scan"></span><span class="gbar ${p.pf}"></span><span class="hud tl"></span><span class="hud br"></span><figcaption><div class="gt">${p.t}</div><div class="gm"><span class="st ${p.st}">${p.st.toUpperCase()}</span><span class="meta">${dlabel(p.d)}${p.h?' · '+p.h:''}</span></div><div class="gm">${pill(p.pf)}${brandTag(p.brand)}${p.reach?`<span class="meta" style="margin-left:auto">${fmt(p.reach)}</span>`:''}</div></figcaption></figure>`).join('')}</div>`;
  return hero()+`<div class="fbar">${[['todas','TODAS'],['publicada','PUBLICADAS'],['programada','PROGRAMADAS'],['borrador','BORRADORES']].map(([k,n])=>`<button class="chip ${pubFilter===k?'act':''}" data-pubf="${k}">${n} · ${k==='todas'?byBrand(POSTS).length:byBrand(POSTS).filter(p=>p.st===k).length}</button>`).join('')}<span style="width:1px;height:22px;background:var(--line)"></span>${Object.keys(PF).map(k=>`<button class="chip ${pfFilter===k?'act':''}" data-pff="${k}">${PF[k].n}</button>`).join('')}
  <div class="seg sm" style="margin-left:auto;width:150px"><button class="${pubMode==='tabla'?'act':''}" data-mode="tabla">TABLA</button><button class="${pubMode==='galeria'?'act':''}" data-mode="galeria">GALERÍA</button></div><button class="btn sm" data-new="publicación">+ Nueva</button></div>
@@ -257,18 +289,20 @@ function vMet(){
  <div class="g2"><div class="card"><header><h3>ALCANCE POR ${period==='7'?'DÍA':period==='30'?'TRAMO':'MES'}</h3><span class="lbl">■ VIEWS REGISTRADAS</span></header>${reach?`<div class="bars">${buckets.map(([r,l])=>`<div class="b" data-tip="${l} · ${fmt(r)} de alcance"><div class="bstack"><i style="height:${Math.max(4,r/maxB*100)}%;background:var(--crimson)"></i></div><span>${l}</span></div>`).join('')}</div>`:emptyState('Captura views en tus publicaciones para ver la gráfica.')}</div>
  <div class="card"><header><h3>ALCANCE POR PLATAFORMA</h3><span class="lbl">${period} DÍAS</span></header>${reach?pfAll.map(([k,v])=>`<div class="meter"><div class="lg">${pill(k)}<span><b style="color:#fff">${v?fmt(v):'—'}</b>${reach?' · '+Math.round(v/reach*100)+'%':''}</span></div><div class="tr"><i style="width:${v/maxPf*100}%;background:var(--${k})"></i></div></div>`).join(''):emptyState('Sin métricas en este periodo.')}</div></div>
  <div class="card" style="padding:16px 16px 6px"><header><h3>TOP DE PUBLICACIONES</h3><span class="meta">Clic para ver la ficha</span></header>${top.length?`<div class="tblwrap"><table><thead><tr><th style="width:40%">PUBLICACIÓN</th><th>MARCA</th><th>PLATAFORMA</th><th style="text-align:right">ALCANCE</th><th style="text-align:right">INTERACC.</th><th style="text-align:right">TASA</th></tr></thead><tbody>
- ${top.map(p=>`<tr data-post="${p.id}"><td><div style="display:flex;align-items:center;gap:11px"><img class="thumb" src="${p.thumb}" alt=""><b>${p.t}</b></div></td><td><span class="tag ${p.brand==='ESP'?'esp':'pe'}">${(p.srv||p.brand).toUpperCase()}</span></td><td>${pill(p.pf)}</td><td style="text-align:right"><b>${fmt(p.reach)}</b></td><td style="text-align:right">${fmt(p.eng)}</td><td style="text-align:right"><span class="up">${(p.eng/p.reach*100).toFixed(1)}%</span></td></tr>`).join('')}</tbody></table></div>`:emptyState('Todavía no hay publicaciones con métricas en este periodo.')}</div>`;
+ ${top.map(p=>`<tr data-post="${p.id}"><td><div style="display:flex;align-items:center;gap:11px"><img class="thumb" src="${p.thumb}" alt=""><b>${p.t}</b></div></td><td><span class="tag ${marca(p.brand).clase}">${(p.srv||p.brand).toUpperCase()}</span></td><td>${pill(p.pf)}</td><td style="text-align:right"><b>${fmt(p.reach)}</b></td><td style="text-align:right">${fmt(p.eng)}</td><td style="text-align:right"><span class="up">${(p.eng/p.reach*100).toFixed(1)}%</span></td></tr>`).join('')}</tbody></table></div>`:emptyState('Todavía no hay publicaciones con métricas en este periodo.')}</div>`;
 }
 /* ---------- FORMULARIOS ---------- */
 const OPT=(o,sel)=>o.map(([v,n])=>`<option value="${v}"${v===sel?' selected':''}>${n}</option>`).join('');
 const PF_OPTS=[['ig','Instagram'],['tt','TikTok'],['dc','Discord'],['em','Email'],['fb','Facebook']];
-const BR_OPTS=[['ESP|Orion','ESP · Orion'],['ESP|Andromeda','ESP · Andromeda'],['PE|Pegasus','PE · Pegasus']];
+/* Pares marca·servidor: MARCA_SRV se arma solo desde el catálogo. */
+const BR_OPTS=MARCA_SRV;
 function frm(fields){return fields.map(f=>`<div class="fld"><label class="lbl" for="f_${f.id}">${f.l}</label>${f.tag==='select'?`<select id="f_${f.id}">${f.opts}</select>`:f.tag==='textarea'?`<textarea id="f_${f.id}" rows="${f.rows||3}" placeholder="${f.ph||''}"></textarea>`:`<input id="f_${f.id}" type="${f.type||'text'}" value="${f.v||''}" placeholder="${f.ph||''}">`}</div>`).join('')}
 const fv=id=>{const e=$('#f_'+id);return e?e.value.trim():''};
 function newForm(kind,presetDate){
  if(kind==='informe'){exportCSV();return}
  if(kind==='campaña'){toast('Usa «Crear idea» dentro de una tendencia.');return}
- const brandDef=brand==='PE'?'PE|Pegasus':'ESP|Orion';
+ const bd=brand==='ALL'?'ESP':normMarca(brand);
+ const brandDef=bd+'|'+servidoresDe(bd)[0];
  if(kind==='publicación'||kind==='programación'){
   drawer('Nueva publicación',frm([
    {id:'t',l:'TÍTULO',ph:'Nombre de la pieza'},
@@ -325,6 +359,12 @@ function wire(){
  $$('[data-idea]').forEach(e=>e.onclick=()=>openIdea(e.dataset.idea));
  $$('[data-trend]').forEach(e=>e.onclick=()=>openTrend(e.dataset.trend));
  $$('[data-goto]').forEach(e=>e.onclick=()=>go(e.dataset.goto));
+ $$('[data-brief]').forEach(e=>e.onclick=()=>editarBrief(e.dataset.brief));
+ $$('[data-brand-go]').forEach(e=>e.onclick=()=>{
+  brand=e.dataset.brandGo;
+  $$('#brandSeg button').forEach(x=>x.classList.toggle('act',x.dataset.brand===brand));
+  pintarServidores();render();
+ });
  $$('[data-tf]').forEach(e=>e.onclick=()=>{taskFilter=e.dataset.tf;render()});
  $$('[data-pubf]').forEach(e=>e.onclick=()=>{pubFilter=e.dataset.pubf;render()});
  $$('[data-pff]').forEach(e=>e.onclick=()=>{pfFilter=pfFilter===e.dataset.pff?null:e.dataset.pff;render()});
@@ -370,7 +410,7 @@ const closeDrawer=()=>{$('#drawer').classList.remove('on');$('#scrim').classList
 $('#dClose').onclick=closeDrawer;$('#scrim').onclick=closeDrawer;
 function openPost(id){const p=POSTS.find(x=>x.id===id);if(!p)return;const done=p.chkState.filter(Boolean).length;
  drawer(p.t,`<div class="previewwrap"><img class="prev" src="${p.thumb}" alt=""><span class="scan"></span><span class="hud tl"></span><span class="hud tr"></span><span class="hud bl"></span><span class="hud br"></span></div>
- <div style="display:flex;gap:7px;flex-wrap:wrap">${pill(p.pf)}<span class="st ${p.st}">${p.st.toUpperCase()}</span><span class="tag ${p.brand==='ESP'?'esp':'pe'}">${(p.srv||p.brand).toUpperCase()}</span></div>
+ <div style="display:flex;gap:7px;flex-wrap:wrap">${pill(p.pf)}<span class="st ${p.st}">${p.st.toUpperCase()}</span><span class="tag ${marca(p.brand).clase}">${(p.srv||p.brand).toUpperCase()}</span></div>
  <dl class="kv"><dt>Publicación</dt><dd>${dlabel(p.d)}${p.h?' · '+p.h:''}</dd><dt>Formato</dt><dd>${p.fmt}</dd><dt>Responsable</dt><dd>${p.owner}</dd>${p.url?`<dt>Enlace</dt><dd><a href="${p.url}" target="_blank" style="color:var(--crimson-tx)">${p.url}</a></dd>`:''}<dt>Alcance</dt><dd>${p.reach?fmt(p.reach)+' · '+fmt(p.eng)+' interacciones · '+(p.eng/p.reach*100).toFixed(1)+'%':'Pendiente de publicar'}</dd></dl>
  ${p.copy?`<div><div class="lbl" style="margin-bottom:8px">TEXTO DE LA PUBLICACIÓN</div><div class="copybox">${p.copy}</div></div>`:''}
  ${p.chk.length?`<div><div class="lbl" style="margin-bottom:10px;display:flex;justify-content:space-between">CHECKLIST<span id="chkNum" style="color:var(--crimson-tx)">${done}/${p.chkState.length}</span></div><div class="tr mini" style="margin-bottom:12px"><i id="chkProg" style="width:${done/p.chkState.length*100}%"></i></div><div class="chkl">${p.chk.map((c,i)=>`<label><input type="checkbox" data-chk="${p.id}:${i}" ${p.chkState[i]?'checked':''}><span>${c}</span></label>`).join('')}</div></div>`:''}`,
@@ -392,7 +432,7 @@ function openPost(id){const p=POSTS.find(x=>x.id===id);if(!p)return;const done=p
    esperaban 320ms a que terminara un esqueleto simulado. */
 const instantDelay=()=>0;
 function openTask(id){const t=TASKS.find(x=>x.id===id);if(!t)return;const di=dueInfo(t);
- drawer(t.t,`<div style="display:flex;gap:7px;flex-wrap:wrap"><span class="tag ${t.prio}">${t.prio.toUpperCase()}</span><span class="tag ${t.brand==='ESP'?'esp':'pe'}">${(t.srv||t.brand).toUpperCase()}</span>${t.pf?pill(t.pf):''}</div>
+ drawer(t.t,`<div style="display:flex;gap:7px;flex-wrap:wrap"><span class="tag ${t.prio}">${t.prio.toUpperCase()}</span><span class="tag ${marca(t.brand).clase}"">${(t.srv||t.brand).toUpperCase()}</span>${t.pf?pill(t.pf):''}</div>
  ${t.desc?`<p style="color:var(--tx2);font-size:12.5px">${t.desc}</p>`:''}
  <dl class="kv"><dt>Estado</dt><dd>${({todo:'Por hacer',prog:'En progreso',done:'Listo'})[t.col]}</dd><dt>Responsable</dt><dd>${t.owner}</dd><dt>Entrega</dt><dd${di.late?' style="color:var(--bad)"':''}>${di.label}</dd></dl>
  <div><div class="lbl" style="margin-bottom:8px">PROGRESO · ${t.prog}%</div><div class="tr mini"><i style="width:${t.prog}%"></i></div></div>`,
@@ -419,7 +459,7 @@ function openIdea(id){const i=IDEAS.find(x=>x.id===id);if(!i)return;
   const c=$('#iCopy');if(c)c.onclick=()=>{navigator.clipboard&&navigator.clipboard.writeText(i.copy);toast('Copy copiado')};
   const ok=$('#iOk');if(ok)ok.onclick=()=>{persist(()=>dbPatchIdea(i.id,{status:'aprobada'}),'Idea aprobada');closeDrawer()};
   const cv=$('#iConv');if(cv)cv.onclick=()=>{
-   persist(async()=>{await dbCreatePost({t:i.t,brand:i.brand,srv:i.brand==='PE'?'Pegasus':'Orion',pf:i.pf,st:'borrador',copy:i.copy||i.d,chk:['Arte','Copy revisado','Programada']});
+   persist(async()=>{await dbCreatePost({t:i.t,brand:normMarca(i.brand),srv:servidoresDe(i.brand)[0],pf:i.pf,st:'borrador',copy:i.copy||i.d,chk:['Arte','Copy revisado','Programada']});
     await dbPatchIdea(i.id,{status:'convertida'})},'Idea convertida en borrador de publicación');closeDrawer()};
   const del=$('#iDel');if(del)del.onclick=()=>{if(!confirm('¿Descartar esta idea?'))return;
    persist(()=>dbPatchIdea(i.id,{status:'descartada'}),'Idea descartada');closeDrawer()};
@@ -434,9 +474,91 @@ function openTrend(id){const r=TRENDS.find(x=>x.id===id);if(!r)return;
  setTimeout(()=>{
   $$('#dBody [data-idea]').forEach(e=>e.onclick=()=>openIdea(e.dataset.idea));
   const b=$('#rIdea');if(b)b.onclick=()=>{
-   persist(()=>dbCreateIdea({t:r.t,brand:brand==='PE'?'PE':'ESP',pf:'tt',imp:4,eff:3,d:r.note,why:'Tendencia del radar ('+r.rel+' relevancia).'}),'Idea creada desde la tendencia');closeDrawer()};
+   persist(()=>dbCreateIdea({t:r.t,brand:brand==='ALL'?'ESP':normMarca(brand),pf:'tt',imp:4,eff:3,d:r.note,why:'Tendencia del radar ('+r.rel+' relevancia).'}),'Idea creada desde la tendencia');closeDrawer()};
  },instantDelay());
 }
+/* ---------- BRIEF DE MARCA ----------
+   La guia de voz de cada marca. La edita solo marketing: el rol 'mkt' de
+   gtahub_usuarios.
+
+   AVISO IMPORTANTE: esto es un candado de interfaz, no de seguridad. Todo
+   el hub entra a Supabase con la MISMA llave anonima, asi que la base no
+   puede distinguir quien escribe y RLS no puede frenarlo; quien sepa abrir
+   la consola del navegador puede saltarselo. Sirve para que nadie del
+   equipo lo toque por error, que es lo que se pidio. Para que sea un
+   permiso de verdad, el login tiene que pasar a Supabase Auth y entonces
+   RLS ve auth.uid(). */
+const ROL_BRIEF='mkt';
+const puedeEditarBrief=()=>((HUB.user&&HUB.user.role)||'').toLowerCase()===ROL_BRIEF;
+const CAMPOS_BRIEF=[
+ ['publico','PÚBLICO','A quién le habla esta marca'],
+ ['tono','TONO','Cómo suena: registro, ritmo, qué tanto se permite'],
+ ['pilares','PILARES DE CONTENIDO','Los temas que sí se tocan, uno por línea'],
+ ['si','QUÉ SÍ','Lo que no puede faltar en una pieza'],
+ ['no','QUÉ NO','Lo que nunca va: palabras, temas, formatos'],
+ ['referencias','REFERENCIAS','Cuentas o piezas que marcan el estándar'],
+ ['cta','LLAMADA A LA ACCIÓN','Con qué cierra cada pieza'],
+];
+const briefDe=id=>BRIEFS[id]||{};
+const briefVacio=id=>!CAMPOS_BRIEF.some(([k])=>(briefDe(id)[k]||'').trim());
+
+/* Cuentas de una marca en cada red, para el pie del brief. */
+function redesDe(id){
+ const c=CUENTAS[id]||{};
+ return `<div class="redes">${['ig','tt','dc','em','fb'].map(k=>{
+  const v=c[k]||{};
+  const txt=v.cuenta?esc(v.cuenta):'<i>sin asignar</i>';
+  return `<div class="red"><span class="pf p-${k}"><span class="dot"></span>${PF[k].n}</span>${
+   v.url?`<a href="${esc(v.url)}" target="_blank" rel="noopener">${txt} ↗</a>`:`<span class="meta">${txt}</span>`}</div>`;
+ }).join('')}</div>`;
+}
+
+function vBrief(){
+ const aviso=HUB.migrado?'':`<div class="card nota"><h3>FALTA CORRER LA MIGRACIÓN</h3>
+  <p>El brief y las cuentas por marca viven en tablas que todavía no existen en Supabase.
+  Corre <code>supabase/marcas-brief.sql</code> en el SQL Editor y esta vista se llena sola.
+  Mientras tanto se puede leer la estructura, pero no guardar.</p></div>`;
+
+ const ficha=id=>{
+  const b=briefDe(id),m=MARCAS[id];
+  const cuerpo=briefVacio(id)
+   ? `<div class="empty"><div class="lbl">SIN BRIEF TODAVÍA</div><p class="meta">${
+       puedeEditarBrief()?'Escríbelo con «Editar brief».':'Marketing aún no lo ha escrito.'}</p></div>`
+   : CAMPOS_BRIEF.map(([k,l])=>(b[k]||'').trim()
+       ?`<div class="bcampo"><div class="lbl">${l}</div><p>${esc(b[k]).replace(/\n/g,'<br>')}</p></div>`:'').join('');
+  return `<div class="card brief">
+   <header><h3>${esc(m.nombre)}</h3>${puedeEditarBrief()?`<button class="chip" data-brief="${id}">EDITAR BRIEF</button>`:''}</header>
+   <div class="bmeta meta">${esc(m.idioma)} · ${m.servidores.map(esc).join(' · ')}</div>
+   ${cuerpo}
+   <div class="bcampo"><div class="lbl">CUENTAS</div>${redesDe(id)}</div>
+   ${b.actualizado?`<div class="meta" style="margin-top:10px">Actualizado ${dlabel((b.actualizado||'').slice(0,10))}${b.por?' por '+esc(b.por):''}</div>`:''}
+  </div>`;
+ };
+
+ const quien=puedeEditarBrief()
+  ? `<div class="meta">Puedes editar el brief: tu rol es <b>${esc(HUB.user.role)}</b>.</div>`
+  : `<div class="meta">Solo marketing (rol <b>${ROL_BRIEF}</b>) edita el brief. Tú lo ves en modo lectura.</div>`;
+
+ const ids=brand==='ALL'?MARCA_IDS:[normMarca(brand)];
+ return hero(`<div style="margin-top:14px">${quien}</div>`)+aviso+
+  `<div class="${ids.length>1?'briefs':''}">${ids.map(ficha).join('')}</div>`;
+}
+
+/* Formulario de edición, en el drawer como el resto de altas. */
+function editarBrief(id){
+ if(!puedeEditarBrief())return toast('Solo marketing puede editar el brief.');
+ if(!HUB.migrado)return toast('Corre supabase/marcas-brief.sql antes de guardar.');
+ const b=briefDe(id);
+ drawer('Brief · '+MARCAS[id].nombre,
+  frm(CAMPOS_BRIEF.map(([k,l,ph])=>({id:'b_'+k,l,tag:'textarea',rows:k==='pilares'||k==='no'?4:3,ph}))),
+  `<button class="btn" style="flex:1" id="bSave">Guardar brief</button>`);
+ CAMPOS_BRIEF.forEach(([k])=>{const e=$('#f_b_'+k);if(e)e.value=b[k]||''});
+ $('#bSave').onclick=()=>{
+  const datos={};CAMPOS_BRIEF.forEach(([k])=>datos[k]=fv('b_'+k));
+  persist(()=>dbGuardarBrief(id,datos),'Brief de '+id+' guardado');closeDrawer();
+ };
+}
+
 /* ---------- NOTIFICACIONES ---------- */
 function renderNotis(){
  const N=buildNotis();

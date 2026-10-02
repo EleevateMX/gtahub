@@ -3,7 +3,21 @@ const SB_URL='https://hwqiyqullrznovamkhsz.supabase.co';
 const SB_KEY='sb_publishable_drCD07AueLcmq1JRb4xS1w_CHbhSN3C';
 const SB_H={apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,'Content-Type':'application/json',Prefer:'return=representation'};
 
-const HUB={user:null,online:false,metas:{ig:5,tt:7,dc:2,em:1,fb:3}};
+const HUB={user:null,online:false,migrado:false,metas:{ig:5,tt:7,dc:2,em:1,fb:3}};
+
+/* Petición que tolera que la tabla todavía no exista (404 de PostgREST).
+   Mientras no se corra supabase/marcas-brief.sql, gtahub_cuentas y
+   gtahub_briefs no están: el hub debe seguir funcionando igual. */
+async function apiOpc(path){
+ try{return await api(path)}catch(e){return null}
+}
+
+/* Qué valor de marca acepta la base HOY.
+   Antes de la migración la columna solo conoce 'ESP' y 'PE', así que
+   escribir 'ENG' la haría fallar; se traduce de vuelta. 'BR' no existe
+   todavía en ese esquema, y por eso marcaEscribible() lo bloquea arriba. */
+const marcaParaDB=id=>HUB.migrado?id:(id==='ENG'?'PE':id);
+const marcaEscribible=id=>HUB.migrado||id!=='BR';
 const PF_DB={instagram:'ig',tiktok:'tt',discord:'dc',email:'em',facebook:'fb',multi:'dc'};
 const DB_PF={ig:'instagram',tt:'tiktok',dc:'discord',em:'email',fb:'facebook'};
 const THUMB_PF={ig:'hub-art/t-acceso.jpg',tt:'hub-art/t-atraco.jpg',dc:'hub-art/t-drop.jpg',em:'hub-art/t-newsletter.jpg',fb:'hub-art/t-jornada.jpg'};
@@ -72,7 +86,7 @@ async function hubLoginSinMigrar(u,pass){
 /* ---------- CARGA DE DATOS ---------- */
 function mapPost(r){
  const pf=PF_DB[r.platform]||'dc';
- return{id:r.id,t:r.title,brand:r.brand||'ESP',srv:r.srv||'Orion',pf,
+ return{id:r.id,t:r.title,brand:normMarca(r.brand),srv:r.srv||servidoresDe(r.brand)[0],pf,
   st:ST_DB[r.status]||'borrador',d:r.publish_date||'',h:r.publish_time||'',
   reach:r.views||0,eng:r.interactions||0,likes:r.likes||0,url:r.url||'',
   thumb:r.thumb||THUMB_PF[pf],fmt:r.fmt||r.type||'post',owner:r.created_by||'—',
@@ -80,12 +94,12 @@ function mapPost(r){
   chkState:Array.isArray(r.chk_state)?r.chk_state:(Array.isArray(r.chk)?r.chk.map(()=>false):[])};
 }
 function mapTask(r){
- return{id:r.id,t:r.title,col:r.col,prio:r.prio,brand:r.brand||'ESP',srv:r.srv||'Orion',
+ return{id:r.id,t:r.title,col:r.col,prio:r.prio,brand:normMarca(r.brand),srv:r.srv||servidoresDe(r.brand)[0],
   pf:r.platform?(PF_DB[r.platform]||null):null,dueDate:r.due_date||'',owner:r.owner||'—',
   prog:r.prog||0,desc:r.descr||''};
 }
 function mapIdea(r){
- return{id:r.id,t:r.title,pf:PF_DB[r.platform]||'ig',brand:r.brand||'ESP',
+ return{id:r.id,t:r.title,pf:PF_DB[r.platform]||'ig',brand:normMarca(r.brand),
   imp:r.imp||3,eff:r.eff||3,st:r.status==='aprobada'?'aprobada':'revision',
   d:r.description||'',why:r.rationale||'',copy:r.copy_text||'',src:r.source,raw:r.status};
 }
@@ -93,18 +107,35 @@ function mapTrend(r){
  return{id:r.id,t:r.title,rel:r.relevance||'media',note:r.insight||'',src:r.source_url||'',d:(r.created_at||'').slice(0,10)};
 }
 async function hubLoad(){
- const[pubs,tasks,ideas,trends,metas]=await Promise.all([
+ const[pubs,tasks,ideas,trends,metas,cuentas,briefs]=await Promise.all([
   api('gtahub_publicaciones?select=*&order=publish_date.desc.nullslast&limit=500'),
   api('gtahub_tareas?select=*&order=created_at.asc&limit=300'),
   api('gtahub_ideas?select=*&order=created_at.desc&limit=300'),
   api('gtahub_tendencias?select=*&order=created_at.desc&limit=100'),
   api('gtahub_metas?select=*'),
+  apiOpc('gtahub_cuentas?select=*'),
+  apiOpc('gtahub_briefs?select=*'),
  ]);
+ /* Que gtahub_cuentas responda es la señal de que la migración de marcas
+    ya corrió; de eso dependen BR y el valor que se escribe en brand. */
+ HUB.migrado=Array.isArray(cuentas);
  POSTS.length=0;pubs.forEach(r=>POSTS.push(mapPost(r)));
  TASKS.length=0;tasks.forEach(r=>TASKS.push(mapTask(r)));
  IDEAS.length=0;ideas.filter(r=>r.status!=='descartada'&&r.status!=='convertida').forEach(r=>IDEAS.push(mapIdea(r)));
  TRENDS.length=0;trends.forEach(r=>TRENDS.push(mapTrend(r)));
  (metas||[]).forEach(m=>{const k=PF_DB[m.platform];if(k)HUB.metas[k]=m.weekly_goal});
+
+ MARCA_IDS.forEach(id=>{CUENTAS[id]={};delete BRIEFS[id]});
+ (cuentas||[]).forEach(c=>{
+  const id=normMarca(c.brand),k=PF_DB[c.platform];
+  if(k&&CUENTAS[id])CUENTAS[id][k]={cuenta:c.handle||'',url:c.url||''};
+ });
+ (briefs||[]).forEach(b=>{
+  const id=normMarca(b.brand);
+  if(MARCAS[id])BRIEFS[id]={publico:b.publico||'',tono:b.tono||'',pilares:b.pilares||'',
+   si:b.si_hacer||'',no:b.no_hacer||'',referencias:b.referencias||'',cta:b.cta||'',
+   actualizado:b.updated_at||'',por:b.updated_by||''};
+ });
  HUB.online=true;
 }
 
@@ -113,7 +144,7 @@ const by=()=>HUB.user?HUB.user.name:null;
 async function dbCreatePost(f){
  return api('gtahub_publicaciones',{method:'POST',body:JSON.stringify({
   title:f.t,platform:DB_PF[f.pf]||'instagram',type:f.fmt||'post',status:DB_ST[f.st]||'borrador',
-  publish_date:f.d||null,publish_time:f.h||null,brand:f.brand,srv:f.srv,fmt:f.fmt||null,
+  publish_date:f.d||null,publish_time:f.h||null,brand:marcaParaDB(f.brand),srv:f.srv,fmt:f.fmt||null,
   copy_text:f.copy||null,notes:f.notes||null,chk:f.chk||[],chk_state:(f.chk||[]).map(()=>false),
   created_by:by()})});
 }
@@ -123,7 +154,7 @@ async function dbPatchPost(id,patch){
 async function dbDeletePost(id){return api('gtahub_publicaciones?id=eq.'+id,{method:'DELETE'})}
 async function dbCreateTask(f){
  return api('gtahub_tareas',{method:'POST',body:JSON.stringify({
-  title:f.t,col:f.col||'todo',prio:f.prio||'media',brand:f.brand||'ESP',srv:f.srv||'Orion',
+  title:f.t,col:f.col||'todo',prio:f.prio||'media',brand:marcaParaDB(f.brand||'ESP'),srv:f.srv||'Orion',
   platform:f.pf?DB_PF[f.pf]:null,due_date:f.dueDate||null,owner:f.owner||by()||'—',
   prog:f.prog||0,descr:f.desc||null,created_by:by()})});
 }
@@ -131,11 +162,24 @@ async function dbPatchTask(id,patch){return api('gtahub_tareas?id=eq.'+id,{metho
 async function dbDeleteTask(id){return api('gtahub_tareas?id=eq.'+id,{method:'DELETE'})}
 async function dbCreateIdea(f){
  return api('gtahub_ideas',{method:'POST',body:JSON.stringify({
-  title:f.t,description:f.d||null,platform:DB_PF[f.pf]||'instagram',brand:f.brand||'ESP',
+  title:f.t,description:f.d||null,platform:DB_PF[f.pf]||'instagram',brand:marcaParaDB(f.brand||'ESP'),
   imp:f.imp||3,eff:f.eff||3,status:'nueva',source:'manual',priority:'media',
   rationale:f.why||null,created_by:by()})});
 }
 async function dbPatchIdea(id,patch){return api('gtahub_ideas?id=eq.'+id,{method:'PATCH',body:JSON.stringify(patch)})}
+/* El brief es una fila por marca: se inserta o se pisa segun exista. */
+async function dbGuardarBrief(marcaId,d){
+ return api('gtahub_briefs?on_conflict=brand',{method:'POST',
+  headers:Object.assign({},SB_H,{Prefer:'resolution=merge-duplicates,return=representation'}),
+  body:JSON.stringify({brand:marcaParaDB(marcaId),publico:d.publico||null,tono:d.tono||null,
+   pilares:d.pilares||null,si_hacer:d.si||null,no_hacer:d.no||null,
+   referencias:d.referencias||null,cta:d.cta||null,updated_by:by()})});
+}
+async function dbGuardarCuenta(marcaId,pf,handle,url){
+ return api('gtahub_cuentas?on_conflict=brand,platform',{method:'POST',
+  headers:Object.assign({},SB_H,{Prefer:'resolution=merge-duplicates,return=representation'}),
+  body:JSON.stringify({brand:marcaParaDB(marcaId),platform:DB_PF[pf],handle:handle||null,url:url||null})});
+}
 
 /* ---------- HELPERS DE FECHA ---------- */
 const todayISO=()=>{const t=new Date();return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0')};

@@ -2,8 +2,8 @@
 
 ## Qué es esto
 
-Panel interno del equipo de contenido de GTAHUB (gtahub.gg): marcas **ESP**
-(servidores Orion y Andromeda) y **PE** (Pegasus). App estática sin build ni
+Panel interno del equipo de contenido de GTAHUB (gtahub.gg): tres marcas,
+**ESP** (Orion y Andromeda), **ENG** (Pegasus) y **BR**. App estática sin build ni
 dependencias, conectada a Supabase. Se publica en **GitHub Pages** vía
 `.github/workflows/pages.yml`: cada push a las ramas listadas ahí republica la
 rama `gh-pages`, que se sirve en <https://eleevatemx.github.io/gtahub/>. Las
@@ -22,6 +22,36 @@ rutas son relativas para que funcione bajo el subpath `/gtahub/`.
   `persist(fn, msg)` que guarda → recarga → re-renderiza → toast.
 - `assets/`, `hub-art/` — logo, fondos y personajes.
 
+## Marcas
+
+El catálogo `MARCAS` al inicio de `hub-data.js` es la fuente única: etiquetas,
+selector, servidores, formularios y filtros se derivan de ahí. **Sumar una
+marca es sumar una entrada**, no tocar condicionales.
+
+`ENG` se llamaba `PE`. Ese nombre sigue en `MARCAS.ENG.alias`, y `normMarca()`
+lo traduce al leer, así que el hub funciona igual antes y después de correr
+`supabase/marcas-brief.sql`. Mientras esa migración no corra, `HUB.migrado` es
+falso: se sigue escribiendo `'PE'` y las altas en BR quedan bloqueadas, porque
+el CHECK de la base todavía no las acepta.
+
+**Falta confirmar el nombre real del servidor de BR** (`MARCAS.BR.servidores`,
+hoy `'Por confirmar'`).
+
+Cada marca tiene su propia cuenta en cada red: `gtahub_cuentas`
+(marca + plataforma → handle, url), que se ve y se edita en la vista Brief.
+
+## Brief de marca
+
+Vista `brief`: la guía de voz de cada marca (público, tono, pilares, qué sí,
+qué no, referencias, CTA) en `gtahub_briefs`, una fila por marca.
+
+Lo edita solo el rol `mkt`. **Es un candado de interfaz, no de seguridad**:
+todo el hub entra a Supabase con la misma llave anónima, así que la base no
+distingue quién escribe y RLS no puede frenarlo; quien abra la consola del
+navegador puede saltárselo. Sirve para que nadie lo toque por error. Para que
+sea un permiso real hay que mover el login a Supabase Auth y entonces RLS ve
+`auth.uid()`.
+
 ## Identidad (respetar siempre)
 
 Crimson `#E8005A` sobre negro. Títulos Archivo Black en MAYÚSCULAS, cuerpo
@@ -36,7 +66,9 @@ el token con su pareja clara; no pongas un hex en la regla.
 - Texto: `--tx --tx2 --tx3`. Estados: `--hover --hover-soft --track --track2`.
 - Plataformas: `--ig --tt --dc --em --fb` pintan **rellenos** (puntos, barras).
   Para **texto** existe la pareja `--ig-tx --tt-tx --dc-tx --em-tx --fb-tx`,
-  más `--ok-tx --bad-tx --esp-tx --pe-tx`, porque el mismo tono no alcanza
+  más `--ok-tx --bad-tx` y uno por marca (`--esp-tx` ámbar, `--eng-tx` cian,
+  `--br-tx` violeta: tres hues distintos para que se separen de un vistazo),
+  porque el mismo tono no alcanza
   4.5:1 en los dos temas.
 - El crimson de marca como texto se queda en 4.28:1 sobre la tarjeta oscura,
   así que los enlaces usan `--crimson-tx`. Los rellenos siguen con `--crimson`.

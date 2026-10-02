@@ -6,7 +6,10 @@
 <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <meta name="theme-color" content="#F1F1F6" media="(prefers-color-scheme: light)">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Content Hub">
+<meta name="application-name" content="Content Hub">
 <title>GTAHUB Content Hub</title>
 <script>
 /* Se aplica el tema guardado antes de pintar: si esto viviera en
@@ -18,8 +21,10 @@ try{var _t=localStorage.getItem('gtahub.tema');if(_t==='light'||_t==='dark')docu
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700;800&display=swap">
 <link rel="stylesheet" href="hub-app.css">
 <link rel="manifest" href="manifest.json">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
-<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png">
+<link rel="icon" type="image/png" sizes="48x48" href="favicon-48.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 </head>
 <body>
 
@@ -39,22 +44,26 @@ try{var _t=localStorage.getItem('gtahub.tema');if(_t==='light'||_t==='dark')docu
 <div class="fld"><label class="lbl" for="em">Usuario</label><input id="em" type="text" autocapitalize="none" autocomplete="username" required></div>
 <div class="fld"><label class="lbl" for="pw">Contraseña</label><input id="pw" type="password" autocomplete="current-password" required></div>
 <div style="display:flex;align-items:center;justify-content:space-between"><label style="font-size:11.5px;color:var(--tx2);display:flex;gap:8px;align-items:center"><input type="checkbox" checked style="accent-color:var(--crimson)">Mantener sesión</label><span style="font-size:11px;color:var(--tx3)">Acceso del equipo</span></div>
-<div id="loginErr" role="alert" style="display:none;font-size:12px;color:#ff6b9d;background:rgba(232,0,90,.1);border:1px solid rgba(232,0,90,.3);border-radius:8px;padding:9px 12px"></div>
+<div id="loginErr" class="lerr" role="alert" style="display:none"></div>
 <button class="btn" id="loginBtn" type="submit">Entrar al hub</button>
-<div class="lbl" style="text-align:center;margin-top:4px">GTAHUB ESP · GTAHUB PE</div>
+<div class="lbl" style="text-align:center;margin-top:4px" id="loginMarcas">GTAHUB ESP · ENG · BR</div>
 </form>
 </div>
 </div>
 </div>
 
 <!-- CARGA -->
-<div id="boot" class="hide"><div class="in">
+<div id="boot" class="hide">
+<img class="bg" src="hub-art/bg-inicio.jpg" alt="" decoding="async"><span class="velo"></span><span class="diag"></span><span class="scan"></span><span class="hud tl"></span><span class="hud tr"></span><span class="hud bl"></span><span class="hud br"></span>
+<div class="in">
 <div class="gh"><img src="assets/logoGtahub.png" alt="GTAHUB"></div>
 <h2>CONTENT HUB</h2>
 <div class="lbl">PREPARANDO TU PANEL</div>
 <div class="bar"><i id="bootBar"></i></div>
-<div class="st" id="bootSt">Conectando con el hub</div>
-</div></div>
+<div class="st" id="bootSt" role="status" aria-live="polite">Conectando con el hub</div>
+</div>
+<div class="pie"><span class="lbl">GTAHUB.GG</span><span class="lbl" id="bootMarcas">ESP · ENG · BR</span></div>
+</div>
 
 <!-- APP -->
 <div id="app" class="hide">

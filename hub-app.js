@@ -36,7 +36,11 @@ $('#loginForm').addEventListener('submit',async e=>{
  }catch(ex){err.textContent='No hay conexión con la base. Inténtalo de nuevo.';err.style.display='block';
   b.disabled=false;b.textContent='Entrar al hub'}
 });
-const BOOTSTEPS=['Conectando con el hub','Sincronizando GTAHUB ESP','Sincronizando GTAHUB PE','Cargando calendario y métricas','Listo'];
+/* Los pasos y las etiquetas de marca salen de MARCAS: con BR ya no basta
+   escribir «ESP · PE» a mano. */
+const BOOTSTEPS=['Conectando con el hub',...MARCA_IDS.map(id=>'Sincronizando GTAHUB '+id),'Cargando calendario y métricas','Listo'];
+$('#loginMarcas').textContent='GTAHUB '+MARCA_IDS.join(' · ');
+$('#bootMarcas').textContent=MARCA_IDS.join(' · ');
 /* Piso corto para que la pantalla de carga no parpadee cuando la
    respuesta es muy rápida. Antes los pasos avanzaban con un
    temporizador fijo de 320ms cada uno más 300ms al final: 1.6s
@@ -174,23 +178,39 @@ function vInicio(){
  ${kpi('ALCANCE · 30 DÍAS',reach30?fmt(reach30):'—',reach30?'Suma de views registradas':'Captura métricas al publicar')}</div>
  <div class="g2">
  <div class="card"><header><h3>PRÓXIMAS PROGRAMADAS</h3><button class="chip" data-goto="publicaciones">VER TODO</button></header>
- ${prog.slice(0,5).map(p=>`<div class="row" data-post="${p.id}"><img class="thumb" src="${p.thumb}" alt=""><div class="t">${p.t}<div class="meta" style="margin-top:3px">${p.fmt}</div></div>${brandTag(p.brand)}${pill(p.pf)}<span class="meta">${dlabel(p.d)}${p.h?' '+p.h:''}</span></div>`).join('')||emptyState('Sin publicaciones programadas. Crea la primera con «Nueva publicación».')}</div>
+ ${prog.slice(0,5).map(p=>`<div class="row" data-post="${p.id}"><img class="thumb" src="${p.thumb}" alt=""><div class="t">${p.t}<div class="meta" style="margin-top:3px">${p.fmt}</div></div>${brandTag(p.brand)}${pill(p.pf)}<span class="meta">${dlabel(p.d)}${p.h?' '+p.h:''}</span></div>`).join('')||emptyState('No hay publicaciones programadas para esta marca.','programadas')}</div>
  <div class="card"><header><h3>PENDIENTES URGENTES</h3><span class="tag alta">${urg.length}</span></header>
- ${urg.map(t=>{const di=dueInfo(t);return `<div class="row" data-task="${t.id}"><span class="prio ${t.prio}"></span><div class="t">${t.t}<div class="meta" style="margin-top:3px"${di.late?' style="color:var(--bad)"':''}>${di.label} · ${t.owner}</div></div><span class="tag ${t.prio}">${t.prio.toUpperCase()}</span></div>`}).join('')||emptyState('Nada urgente. Buen trabajo.')}</div></div>
+ ${urg.map(t=>{const di=dueInfo(t);return `<div class="row" data-task="${t.id}"><span class="prio ${t.prio}"></span><div class="t">${t.t}<div class="meta" style="margin-top:3px"${di.late?' style="color:var(--bad)"':''}>${di.label} · ${t.owner}</div></div><span class="tag ${t.prio}">${t.prio.toUpperCase()}</span></div>`}).join('')||emptyState('Ninguna tarea vence pronto ni está fuera de plazo.','urgentes')}</div></div>
  <div class="g2">
  <div class="card"><header><h3>CADENCIA SEMANAL · PUBLICADAS VS. META</h3><span class="lbl">ESTA SEMANA</span></header>
- ${cad.map(([p,a,b])=>`<div class="meter"><div class="lg">${pill(p)}<span><b style="color:#fff">${a}</b> / ${b}</span></div><div class="tr"><i style="width:${Math.min(100,a/b*100)}%;background:var(--${p})"></i></div></div>`).join('')}</div>
+ ${cad.map(([p,a,b])=>`<div class="meter"><div class="lg">${pill(p)}<span><b style="color:var(--tx)">${a}</b> / ${b}</span></div><div class="tr"><i style="width:${Math.min(100,a/b*100)}%;background:var(--${p})"></i></div></div>`).join('')}</div>
  <div class="card"><header><h3>ÚLTIMAS TENDENCIAS</h3><button class="chip" data-goto="ideas">EXPLORAR</button></header>
- ${TRENDS.slice(0,5).map(trendRow).join('')||emptyState('El radar semanal aún no carga tendencias.')}</div></div>`;
+ ${TRENDS.slice(0,5).map(trendRow).join('')||emptyState('El radar de los lunes todavía no carga tendencias.','tendencias')}</div></div>`;
 }
 const REL_ST={alta:'publicada',media:'programada',baja:'borrador'};
 function trendRow(r){return `<div class="trend" data-trend="${r.id}"><div class="t" style="flex:1;min-width:0;font-weight:600;font-size:12.5px">${r.t}<div class="meta" style="margin-top:3px">${r.note.slice(0,90)}${r.note.length>90?'…':''}</div></div><span class="st ${REL_ST[r.rel]||'borrador'}">${r.rel.toUpperCase()}</span></div>`}
-function emptyState(m){return `<div class="empty"><img src="hub-art/char-woman.png" alt=""><div>${m}</div></div>`}
+/* Estados vacíos. Cada uno dice qué pasa con voz de transmisión (código de
+   señal + titular) y, si hay algo que hacer, ofrece el botón ahí mismo. El
+   personaje cambia por contexto y nunca repite el del hero de la vista. */
+const ESTADOS_VACIOS={
+ programadas:{cod:'AGENDA LIBRE',h:'NADA EN COLA',char:'char-redsuit',accion:['+ Nueva publicación','data-new="publicación"']},
+ urgentes:{cod:'ZONA DESPEJADA',h:'SIN URGENCIAS',char:'char-varsity'},
+ tendencias:{cod:'RADAR EN ESPERA',h:'SIN SEÑAL DEL SECTOR',char:'char-woman'},
+ filtros:{cod:'SIN COINCIDENCIAS',h:'NADA CON ESTOS FILTROS',char:'char-redsuit',accion:['Quitar filtros','data-limpiar="pub"']},
+ grafica:{cod:'SIN SEÑAL',h:'FALTAN VIEWS',char:'char-redsuit'},
+ plataformas:{cod:'SIN SEÑAL',h:'PERIODO EN BLANCO',char:'char-varsity'},
+ top:{cod:'SIN RANKING',h:'NADIE EN EL PODIO',char:'char-woman'}};
+function emptyState(m,clave='filtros'){
+ const e=ESTADOS_VACIOS[clave]||ESTADOS_VACIOS.filtros;
+ return `<div class="empty vacio"><span class="hud tl"></span><span class="hud br"></span><div class="txt"><div class="cod"><i></i>${e.cod}</div><h4>${e.h}</h4><p>${m}</p>${e.accion?`<button class="btn gh2 sm" type="button" ${e.accion[1]}>${e.accion[0]}</button>`:''}</div><img src="hub-art/${e.char}.png" alt="" decoding="async" loading="lazy"></div>`;
+}
+/* Variante compacta para listas y buscadores, donde un personaje no cabe. */
+const emptyMini=(cod,m)=>`<div class="empty vacio mini"><div class="txt"><div class="cod"><i></i>${cod}</div><p>${m}</p></div></div>`;
 
 /* ---------- PENDIENTES (kanban con arrastre) ---------- */
 function vPend(){
  const ts=byBrand(TASKS).filter(t=>taskFilter==='todas'||t.prio===taskFilter);
- const col=(k,n)=>`<div class="col" data-col="${k}"><h3>${n} <em>${ts.filter(t=>t.col===k).length}</em></h3><div class="drop" data-drop="${k}">${ts.filter(t=>t.col===k).map(t=>{const di=dueInfo(t);return `<div class="tk" draggable="true" data-task="${t.id}"${t.col==='done'?' style="opacity:.75"':''}><span class="prio ${t.prio}"></span><div class="tt">${t.t}</div><div class="mt"><span class="tag ${t.prio}">${t.prio.toUpperCase()}</span><span class="tag ${marca(t.brand).clase}"">${(t.srv||t.brand).toUpperCase()}</span></div>${t.col==='prog'?`<div class="tr mini"><i style="width:${t.prog}%"></i></div>`:''}<div class="ft"><span class="who"><span class="av xs">${t.owner.slice(0,2).toUpperCase()}</span>${t.owner}</span><span${di.late?' style="color:var(--bad)"':''}>${di.label}</span></div></div>`}).join('')||'<div class="meta" style="padding:12px 4px">Suelta una tarjeta aquí.</div>'}</div></div>`;
+ const col=(k,n)=>`<div class="col" data-col="${k}"><h3>${n} <em>${ts.filter(t=>t.col===k).length}</em></h3><div class="drop" data-drop="${k}">${ts.filter(t=>t.col===k).map(t=>{const di=dueInfo(t);return `<div class="tk" draggable="true" data-task="${t.id}"${t.col==='done'?' style="opacity:.75"':''}><span class="prio ${t.prio}"></span><div class="tt">${t.t}</div><div class="mt"><span class="tag ${t.prio}">${t.prio.toUpperCase()}</span><span class="tag ${marca(t.brand).clase}">${(t.srv||t.brand).toUpperCase()}</span></div>${t.col==='prog'?`<div class="tr mini"><i style="width:${t.prog}%"></i></div>`:''}<div class="ft"><span class="who"><span class="av xs">${t.owner.slice(0,2).toUpperCase()}</span>${t.owner}</span><span${di.late?' style="color:var(--bad)"':''}>${di.label}</span></div></div>`}).join('')||'<div class="meta" style="padding:12px 4px">Suelta una tarjeta aquí.</div>'}</div></div>`;
  return hero()+`<div class="fbar">${['todas','alta','media','baja'].map(f=>`<button class="chip ${taskFilter===f?'act':''}" data-tf="${f}">${f.toUpperCase()} · ${f==='todas'?byBrand(TASKS).length:byBrand(TASKS).filter(t=>t.prio===f).length}</button>`).join('')}<span class="meta" style="margin-left:auto">Arrastra las tarjetas entre columnas</span><button class="btn sm" data-new="tarea">+ Nueva tarea</button></div>
  <div class="kb">${col('todo','POR HACER')}${col('prog','EN PROGRESO')}${col('done','LISTO')}</div>`;
 }
@@ -221,7 +241,7 @@ function vPub(){
  const gal=`<div class="gal">${ps.map(p=>`<figure class="gcard" data-post="${p.id}"><img src="${p.thumb}" alt=""><span class="scan"></span><span class="gbar ${p.pf}"></span><span class="hud tl"></span><span class="hud br"></span><figcaption><div class="gt">${p.t}</div><div class="gm"><span class="st ${p.st}">${p.st.toUpperCase()}</span><span class="meta">${dlabel(p.d)}${p.h?' · '+p.h:''}</span></div><div class="gm">${pill(p.pf)}${brandTag(p.brand)}${p.reach?`<span class="meta" style="margin-left:auto">${fmt(p.reach)}</span>`:''}</div></figcaption></figure>`).join('')}</div>`;
  return hero()+`<div class="fbar">${[['todas','TODAS'],['publicada','PUBLICADAS'],['programada','PROGRAMADAS'],['borrador','BORRADORES']].map(([k,n])=>`<button class="chip ${pubFilter===k?'act':''}" data-pubf="${k}">${n} · ${k==='todas'?byBrand(POSTS).length:byBrand(POSTS).filter(p=>p.st===k).length}</button>`).join('')}<span style="width:1px;height:22px;background:var(--line)"></span>${Object.keys(PF).map(k=>`<button class="chip ${pfFilter===k?'act':''}" data-pff="${k}">${PF[k].n}</button>`).join('')}
  <div class="seg sm" style="margin-left:auto;width:150px"><button class="${pubMode==='tabla'?'act':''}" data-mode="tabla">TABLA</button><button class="${pubMode==='galeria'?'act':''}" data-mode="galeria">GALERÍA</button></div><button class="btn sm" data-new="publicación">+ Nueva</button></div>
- ${ps.length?(pubMode==='tabla'?table:gal):emptyState('Ninguna publicación coincide con estos filtros.')}
+ ${ps.length?(pubMode==='tabla'?table:gal):emptyState('Ninguna publicación coincide con estado, plataforma y marca.','filtros')}
  <div style="display:flex;align-items:center;justify-content:space-between"><span class="lbl">MOSTRANDO ${ps.length} DE ${POSTS.length}</span><span class="meta">Clic en una pieza para ver la ficha completa</span></div>`;
 }
 /* ---------- CALENDARIO ---------- */
@@ -258,7 +278,7 @@ function vIdeas(){
  <div class="g3">${is.map(i=>`<div class="idea" data-idea="${i.id}"><div style="display:flex;gap:6px">${pill(i.pf)}${brandTag(i.brand)}</div><h4>${i.t}</h4><p>${i.d.slice(0,140)}${i.d.length>140?'…':''}</p><div class="ie"><div><div class="lbl">IMPACTO</div><div class="pips">${[1,2,3,4,5].map(n=>`<i class="${n<=i.imp?'f':''}"></i>`).join('')}</div></div><div><div class="lbl">ESFUERZO</div><div class="pips e">${[1,2,3,4,5].map(n=>`<i class="${n<=i.eff?'f':''}"></i>`).join('')}</div></div></div></div>`).join('')||emptyState('Sin ideas con este filtro. Crea una con «+ Idea».')}</div></div>
  <div class="card"><header><h3>TENDENCIAS DEL SECTOR</h3><span class="lbl">GTA RP · SEMANAL</span></header>
  <div class="srch" style="max-width:none;margin-bottom:12px"><input id="trendQ" placeholder="Buscar tendencia…"></div>
- <div id="trendList">${TRENDS.map(trendRow).join('')||'<div class="meta">El radar semanal de Claude aún no carga tendencias.</div>'}</div>
+ <div id="trendList">${TRENDS.map(trendRow).join('')||emptyMini('RADAR EN ESPERA','El radar semanal de Claude aún no carga tendencias.')}</div>
  <div class="sugg"><div class="lbl" style="margin-bottom:9px">RADAR DEL HUB</div><p>Cada lunes Claude investiga la escena GTA RP y agrega tendencias nuevas aquí. Haz clic en una para ver el análisis completo y crear una idea a partir de ella.</p></div></div></div>`;
 }
 /* ---------- MÉTRICAS ---------- */
@@ -286,10 +306,10 @@ function vMet(){
  ${kpi('INTERACCIONES',eng?fmt(eng):'—','Suma del periodo')}
  ${kpi('TASA DE INTERACCIÓN',rate,'Interacciones / alcance')}
  ${kpi('PUBLICADAS',ps.length,`En los últimos ${period} días`)}</div>
- <div class="g2"><div class="card"><header><h3>ALCANCE POR ${period==='7'?'DÍA':period==='30'?'TRAMO':'MES'}</h3><span class="lbl">■ VIEWS REGISTRADAS</span></header>${reach?`<div class="bars">${buckets.map(([r,l])=>`<div class="b" data-tip="${l} · ${fmt(r)} de alcance"><div class="bstack"><i style="height:${Math.max(4,r/maxB*100)}%;background:var(--crimson)"></i></div><span>${l}</span></div>`).join('')}</div>`:emptyState('Captura views en tus publicaciones para ver la gráfica.')}</div>
- <div class="card"><header><h3>ALCANCE POR PLATAFORMA</h3><span class="lbl">${period} DÍAS</span></header>${reach?pfAll.map(([k,v])=>`<div class="meter"><div class="lg">${pill(k)}<span><b style="color:#fff">${v?fmt(v):'—'}</b>${reach?' · '+Math.round(v/reach*100)+'%':''}</span></div><div class="tr"><i style="width:${v/maxPf*100}%;background:var(--${k})"></i></div></div>`).join(''):emptyState('Sin métricas en este periodo.')}</div></div>
+ <div class="g2"><div class="card"><header><h3>ALCANCE POR ${period==='7'?'DÍA':period==='30'?'TRAMO':'MES'}</h3><span class="lbl">■ VIEWS REGISTRADAS</span></header>${reach?`<div class="bars">${buckets.map(([r,l])=>`<div class="b" data-tip="${l} · ${fmt(r)} de alcance"><div class="bstack"><i style="height:${Math.max(4,r/maxB*100)}%;background:var(--crimson)"></i></div><span>${l}</span></div>`).join('')}</div>`:emptyState('Captura views en tus publicaciones para ver la gráfica.','grafica')}</div>
+ <div class="card"><header><h3>ALCANCE POR PLATAFORMA</h3><span class="lbl">${period} DÍAS</span></header>${reach?pfAll.map(([k,v])=>`<div class="meter"><div class="lg">${pill(k)}<span><b style="color:var(--tx)">${v?fmt(v):'—'}</b>${reach?' · '+Math.round(v/reach*100)+'%':''}</span></div><div class="tr"><i style="width:${v/maxPf*100}%;background:var(--${k})"></i></div></div>`).join(''):emptyState('Ninguna plataforma registró alcance en este periodo.','plataformas')}</div></div>
  <div class="card" style="padding:16px 16px 6px"><header><h3>TOP DE PUBLICACIONES</h3><span class="meta">Clic para ver la ficha</span></header>${top.length?`<div class="tblwrap"><table><thead><tr><th style="width:40%">PUBLICACIÓN</th><th>MARCA</th><th>PLATAFORMA</th><th style="text-align:right">ALCANCE</th><th style="text-align:right">INTERACC.</th><th style="text-align:right">TASA</th></tr></thead><tbody>
- ${top.map(p=>`<tr data-post="${p.id}"><td><div style="display:flex;align-items:center;gap:11px"><img class="thumb" src="${p.thumb}" alt=""><b>${p.t}</b></div></td><td><span class="tag ${marca(p.brand).clase}">${(p.srv||p.brand).toUpperCase()}</span></td><td>${pill(p.pf)}</td><td style="text-align:right"><b>${fmt(p.reach)}</b></td><td style="text-align:right">${fmt(p.eng)}</td><td style="text-align:right"><span class="up">${(p.eng/p.reach*100).toFixed(1)}%</span></td></tr>`).join('')}</tbody></table></div>`:emptyState('Todavía no hay publicaciones con métricas en este periodo.')}</div>`;
+ ${top.map(p=>`<tr data-post="${p.id}"><td><div style="display:flex;align-items:center;gap:11px"><img class="thumb" src="${p.thumb}" alt=""><b>${p.t}</b></div></td><td><span class="tag ${marca(p.brand).clase}">${(p.srv||p.brand).toUpperCase()}</span></td><td>${pill(p.pf)}</td><td style="text-align:right"><b>${fmt(p.reach)}</b></td><td style="text-align:right">${fmt(p.eng)}</td><td style="text-align:right"><span class="up">${(p.eng/p.reach*100).toFixed(1)}%</span></td></tr>`).join('')}</tbody></table></div>`:emptyState('Todavía no hay publicaciones con métricas en este periodo.','top')}</div>`;
 }
 /* ---------- FORMULARIOS ---------- */
 const OPT=(o,sel)=>o.map(([v,n])=>`<option value="${v}"${v===sel?' selected':''}>${n}</option>`).join('');
@@ -369,6 +389,7 @@ function wire(){
  $$('[data-pubf]').forEach(e=>e.onclick=()=>{pubFilter=e.dataset.pubf;render()});
  $$('[data-pff]').forEach(e=>e.onclick=()=>{pfFilter=pfFilter===e.dataset.pff?null:e.dataset.pff;render()});
  $$('[data-if]').forEach(e=>e.onclick=()=>{ideaFilter=e.dataset.if;render()});
+ $$('[data-limpiar=pub]').forEach(e=>e.onclick=()=>{pubFilter='todas';pfFilter=null;render()});
  $$('[data-is]').forEach(e=>e.onclick=()=>{ideaSort=e.dataset.is;render()});
  $$('[data-mode]').forEach(e=>e.onclick=()=>{pubMode=e.dataset.mode;render()});
  $$('[data-per]').forEach(e=>e.onclick=()=>{period=e.dataset.per;render()});
@@ -388,7 +409,7 @@ function searchTrends(v){
  clearTimeout(searchTrends._h);
  searchTrends._h=setTimeout(()=>{
   const t=v.trim().toLowerCase(),r=TRENDS.filter(x=>!t||x.t.toLowerCase().includes(t)||x.note.toLowerCase().includes(t));
-  l.innerHTML=r.map(trendRow).join('')||`<div class="empty" style="padding:22px"><div>Sin resultados para «${v}».</div></div>`;
+  l.innerHTML=r.map(trendRow).join('')||emptyMini('SIN RESULTADOS',`Nada para «${esc(v)}» en el radar.`);
   $$('[data-trend]',l).forEach(e=>e.onclick=()=>openTrend(e.dataset.trend));
  },380);
 }
@@ -432,7 +453,7 @@ function openPost(id){const p=POSTS.find(x=>x.id===id);if(!p)return;const done=p
    esperaban 320ms a que terminara un esqueleto simulado. */
 const instantDelay=()=>0;
 function openTask(id){const t=TASKS.find(x=>x.id===id);if(!t)return;const di=dueInfo(t);
- drawer(t.t,`<div style="display:flex;gap:7px;flex-wrap:wrap"><span class="tag ${t.prio}">${t.prio.toUpperCase()}</span><span class="tag ${marca(t.brand).clase}"">${(t.srv||t.brand).toUpperCase()}</span>${t.pf?pill(t.pf):''}</div>
+ drawer(t.t,`<div style="display:flex;gap:7px;flex-wrap:wrap"><span class="tag ${t.prio}">${t.prio.toUpperCase()}</span><span class="tag ${marca(t.brand).clase}">${(t.srv||t.brand).toUpperCase()}</span>${t.pf?pill(t.pf):''}</div>
  ${t.desc?`<p style="color:var(--tx2);font-size:12.5px">${t.desc}</p>`:''}
  <dl class="kv"><dt>Estado</dt><dd>${({todo:'Por hacer',prog:'En progreso',done:'Listo'})[t.col]}</dd><dt>Responsable</dt><dd>${t.owner}</dd><dt>Entrega</dt><dd${di.late?' style="color:var(--bad)"':''}>${di.label}</dd></dl>
  <div><div class="lbl" style="margin-bottom:8px">PROGRESO · ${t.prog}%</div><div class="tr mini"><i style="width:${t.prog}%"></i></div></div>`,
@@ -522,8 +543,7 @@ function vBrief(){
  const ficha=id=>{
   const b=briefDe(id),m=MARCAS[id];
   const cuerpo=briefVacio(id)
-   ? `<div class="empty"><div class="lbl">SIN BRIEF TODAVÍA</div><p class="meta">${
-       puedeEditarBrief()?'Escríbelo con «Editar brief».':'Marketing aún no lo ha escrito.'}</p></div>`
+   ? emptyMini('SIN BRIEF TODAVÍA',puedeEditarBrief()?'Escríbelo con «Editar brief».':'Marketing aún no lo ha escrito.')
    : CAMPOS_BRIEF.map(([k,l])=>(b[k]||'').trim()
        ?`<div class="bcampo"><div class="lbl">${l}</div><p>${esc(b[k]).replace(/\n/g,'<br>')}</p></div>`:'').join('');
   return `<div class="card brief">
@@ -587,7 +607,7 @@ function omniSearch(v){
    +sec('PENDIENTES',T.map(x=>`<div class="row" data-o="task:${x.id}"><div class="t">${x.t}<div class="meta" style="margin-top:3px">${dueInfo(x).label}</div></div><span class="tag ${x.prio}">${x.prio.toUpperCase()}</span></div>`).join(''))
    +sec('IDEAS',I.map(x=>`<div class="row" data-o="idea:${x.id}"><div class="t">${x.t}</div>${pill(x.pf)}</div>`).join(''))
    +sec('TENDENCIAS',R.map(x=>`<div class="row" data-o="trend:${x.id}"><div class="t">${x.t}<div class="meta" style="margin-top:3px">${x.note.slice(0,60)}…</div></div><span class="st ${REL_ST[x.rel]}">${x.rel.toUpperCase()}</span></div>`).join(''))
-   ||`<div class="empty"><div>Sin resultados para «${v}».</div></div>`;
+   ||emptyMini('SIN RESULTADOS',`Nada para «${esc(v)}» en publicaciones, tareas, ideas ni tendencias.`);
   $$('[data-o]',r).forEach(e=>e.onclick=()=>{const [k,id]=e.dataset.o.split(':');$('#omni').classList.remove('on');({post:openPost,task:openTask,idea:openIdea,trend:openTrend})[k](id)});
  },400);
 }
@@ -644,3 +664,14 @@ matchMedia('(prefers-color-scheme: light)').addEventListener('change',()=>{
  if(!temaGuardado())aplicarTema(temaActivo());
 });
 aplicarTema(temaActivo());
+
+/* ---------- APP INSTALABLE ----------
+   Chrome solo ofrece «Instalar» si hay un service worker con 'fetch'.
+   updateViaCache:'none' evita que la caché HTTP de GitHub Pages (10 min)
+   retrase la llegada de un sw.js nuevo. Ruta relativa: vive bajo /gtahub/. */
+if('serviceWorker' in navigator&&location.protocol!=='file:'){
+ addEventListener('load',()=>{
+  navigator.serviceWorker.register('sw.js',{scope:'./',updateViaCache:'none'})
+   .catch(e=>console.warn('No se pudo registrar el service worker',e));
+ });
+}

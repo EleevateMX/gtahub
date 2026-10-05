@@ -73,6 +73,21 @@ el token con su pareja clara; no pongas un hex en la regla.
 - El crimson de marca como texto se queda en 4.28:1 sobre la tarjeta oscura,
   así que los enlaces usan `--crimson-tx`. Los rellenos siguen con `--crimson`.
 
+## Referencias y propuestas de copy
+
+En la ficha de cualquier publicación, tarea o idea (el drawer) hay dos bloques:
+**referencias visuales** y **propuestas de copy**. Las imágenes se suben como
+archivo o se pegan como URL; las propuestas son varias versiones del caption,
+cada una firmada con el nombre de quien la escribió, para que el equipo elija.
+
+A diferencia del brief, **esto no tiene candado de rol**: si solo MeDed pudiera
+subir, nadie más podría proponer copy, que es justo para lo que sirve. El
+autor queda registrado, y cerrarlo luego es la misma línea que
+`puedeEditarBrief()`.
+
+Las tarjetas de las vistas llevan un contador (`refBdg`) con cuántas imágenes y
+cuántas propuestas trae la pieza, para no abrirla a ciegas.
+
 ## Tema claro y oscuro
 
 Oscuro es el tema de la marca y el de partida. El claro se define una sola vez
@@ -121,6 +136,15 @@ PostgREST desde `hub-api.js`. Tablas:
 - `gtahub_tendencias`: title, insight, source_url, relevance (alta|media|baja).
   Las llena Claude cada lunes (tarea programada). NO inventar deltas/sparklines para
   tendencias: solo hay relevancia + análisis.
+- `gtahub_referencias`: ref_tipo (idea|publicacion|tarea) + ref_id apuntan a la
+  pieza padre, tipo (imagen|copy), url, texto, autor. Imágenes de muestra para
+  que el equipo vea cómo va a quedar algo, y varias versiones del copy para
+  elegir. No hay llave foránea (el padre vive en tres tablas distintas): el hub
+  limpia las referencias al borrar la pieza, y al convertir una idea en
+  publicación las mueve con ella. Los archivos subidos van al bucket público
+  `gtahub-media` de Storage; también se acepta pegar una URL. Lo crea
+  `supabase/referencias.sql`; mientras no corra, `HUB.refs` es falso y la ficha
+  muestra el aviso en vez de una galería vacía.
 - `gtahub_metas`: platform (pk), weekly_goal — metas de cadencia semanal.
 - `gtahub_usuarios`: username (pk), display_name, role, salt, pass_hash.
   Login: la función `hub_login(p_usuario, p_password)` compara

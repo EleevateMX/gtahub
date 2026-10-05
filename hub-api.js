@@ -3,7 +3,7 @@ const SB_URL='https://hwqiyqullrznovamkhsz.supabase.co';
 const SB_KEY='sb_publishable_drCD07AueLcmq1JRb4xS1w_CHbhSN3C';
 const SB_H={apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,'Content-Type':'application/json',Prefer:'return=representation'};
 
-const HUB={user:null,online:false,migrado:false,metas:{ig:5,tt:7,dc:2,em:1,fb:3}};
+const HUB={user:null,online:false,migrado:false,refs:false,metas:{ig:5,tt:7,dc:2,em:1,fb:3}};
 
 /* Petición que tolera que la tabla todavía no exista (404 de PostgREST).
    Mientras no se corra supabase/marcas-brief.sql, gtahub_cuentas y
@@ -118,11 +118,16 @@ function mapIdea(r){
   imp:r.imp||3,eff:r.eff||3,st:r.status==='aprobada'?'aprobada':'revision',
   d:r.description||'',why:r.rationale||'',copy:r.copy_text||'',src:r.source,raw:r.status};
 }
+/* Una referencia: imagen de muestra o propuesta de copy. */
+function mapRef(r){
+ return{id:r.id,ref:r.ref_tipo,refId:r.ref_id,tipo:r.tipo,url:r.url||'',
+  texto:r.texto||'',autor:r.autor||'\u2014',d:(r.created_at||'').slice(0,10)};
+}
 function mapTrend(r){
  return{id:r.id,t:r.title,rel:r.relevance||'media',note:r.insight||'',src:r.source_url||'',d:(r.created_at||'').slice(0,10)};
 }
 async function hubLoad(){
- const[pubs,tasks,ideas,trends,metas,cuentas,briefs,manychat,cuenta,mcPasos,mcBotones]=await Promise.all([
+ const[pubs,tasks,ideas,trends,metas,cuentas,briefs,manychat,cuenta,mcPasos,mcBotones,refs]=await Promise.all([
   api('gtahub_publicaciones?select=*&order=publish_date.desc.nullslast&limit=500'),
   api('gtahub_tareas?select=*&order=created_at.asc&limit=300'),
   api('gtahub_ideas?select=*&order=created_at.desc&limit=300'),
@@ -134,10 +139,15 @@ async function hubLoad(){
   apiOpc('gtahub_cuenta?select=*&order=corte.desc&limit=36'),
   apiOpc('gtahub_manychat_pasos?select=*&order=corte.desc,orden.asc&limit=200'),
   apiOpc('gtahub_manychat_botones?select=*&order=corte.desc,orden.asc&limit=200'),
+  apiOpc('gtahub_referencias?select=*&order=created_at.asc&limit=800'),
  ]);
  /* Que gtahub_cuentas responda es la señal de que la migración de marcas
     ya corrió; de eso dependen BR y el valor que se escribe en brand. */
  HUB.migrado=Array.isArray(cuentas);
+ /* Que gtahub_referencias responda es la senal de que referencias.sql ya
+    corrio. Sin eso, la ficha muestra el aviso y no el boton de subir. */
+ HUB.refs=Array.isArray(refs);
+ REFS.length=0;(refs||[]).forEach(r=>REFS.push(mapRef(r)));
  MANYCHAT.length=0;(manychat||[]).forEach(r=>MANYCHAT.push(mapCorte(r)));
  CUENTA.length=0;(cuenta||[]).forEach(r=>CUENTA.push(mapCuenta(r)));
  /* Solo el corte mas reciente: el detalle es una foto, no una serie. */
@@ -197,6 +207,46 @@ async function dbCreateIdea(f){
   rationale:f.why||null,created_by:by()})});
 }
 async function dbPatchIdea(id,patch){return api('gtahub_ideas?id=eq.'+id,{method:'PATCH',body:JSON.stringify(patch)})}
+/* ---------- REFERENCIAS: IMAGENES Y PROPUESTAS DE COPY ---------- */
+async function dbCreateRef(f){
+ return api('gtahub_referencias',{method:'POST',body:JSON.stringify({
+  ref_tipo:f.ref,ref_id:f.refId,tipo:f.tipo,
+  url:f.url||null,texto:f.texto||null,autor:by()})});
+}
+async function dbDeleteRef(id){return api('gtahub_referencias?id=eq.'+id,{method:'DELETE'})}
+/* Cuando una idea se convierte en publicacion, sus imagenes y propuestas se
+   van con ella: el trabajo de referencia no se pierde en el camino. */
+async function dbMoverRefs(ref,id,aRef,aId){
+ if(!HUB.refs)return null;
+ return api('gtahub_referencias?ref_tipo=eq.'+ref+'&ref_id=eq.'+id,
+  {method:'PATCH',body:JSON.stringify({ref_tipo:aRef,ref_id:aId})});
+}
+/* Al borrar la pieza se borran sus referencias: la tabla no tiene llave
+   foranea (el padre puede ser de tres tablas), asi que la limpieza es aqui. */
+async function dbDeleteRefsDe(ref,id){
+ if(!HUB.refs)return null;
+ return api('gtahub_referencias?ref_tipo=eq.'+ref+'&ref_id=eq.'+id,{method:'DELETE'});
+}
+
+/* Subida de archivo al bucket publico de Storage.
+   No reusa SB_H a proposito: ahi el Content-Type es application/json y aqui
+   tiene que ser el del archivo, porque Storage lo guarda tal cual y de eso
+   depende que el navegador luego lo pinte como imagen.
+   Devuelve la URL publica, que es lo que se guarda en la fila. */
+const MEDIA_BUCKET='gtahub-media';
+const MEDIA_MB=5;
+async function dbSubirImagen(file,carpeta){
+ const ext=(String(file.name||'').match(/\.[a-z0-9]+$/i)||['.jpg'])[0].toLowerCase();
+ const nombre=carpeta+'/'+Date.now().toString(36)+'-'+Math.random().toString(36).slice(2,8)+ext;
+ const r=await fetch(SB_URL+'/storage/v1/object/'+MEDIA_BUCKET+'/'+nombre,{
+  method:'POST',
+  headers:{apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,
+   'Content-Type':file.type||'application/octet-stream','x-upsert':'false'},
+  body:file});
+ if(!r.ok)throw new Error((await r.text()).slice(0,300));
+ return SB_URL+'/storage/v1/object/public/'+MEDIA_BUCKET+'/'+nombre;
+}
+
 /* El brief es una fila por marca: se inserta o se pisa segun exista. */
 async function dbGuardarBrief(marcaId,d){
  return api('gtahub_briefs?on_conflict=brand',{method:'POST',

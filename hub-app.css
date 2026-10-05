@@ -678,3 +678,60 @@ button,.row,.trend,.cl,.gcard,.tk,.idea{touch-action:manipulation}
  #login .side{padding:24px 18px 36px;border-left:0;place-items:start center}
  #boot .pie{left:18px;right:18px;bottom:18px}
 }
+
+/* ============================================================
+   v5 · REFERENCIAS VISUALES Y PROPUESTAS DE COPY
+   ------------------------------------------------------------
+   La galería y las propuestas viven dentro del drawer, debajo
+   de la ficha. Sin un solo color literal: todo sale de los
+   tokens de :root, así que el tema claro lo hereda solo.
+   ============================================================ */
+.refs{display:flex;flex-direction:column;gap:11px}
+.refhead{display:flex;align-items:center;gap:8px;margin-top:4px}
+.refhead span{display:inline-flex;align-items:center;justify-content:center;min-width:17px;height:17px;padding:0 5px;border-radius:9px;background:var(--track);color:var(--tx2);font:700 9px/1 Inter,sans-serif;letter-spacing:1px}
+.refvacio{font-size:12px;line-height:1.5;color:var(--tx3);border:1px dashed var(--line2);border-radius:10px;padding:13px 14px;max-width:46ch;text-wrap:pretty}
+.refadd{align-self:flex-start}
+
+/* Galería: tarjetas de ancho fijo mínimo, tantas por fila como quepan. */
+.refgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(132px,1fr));gap:10px}
+.refim{position:relative;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--panel2);display:flex;flex-direction:column}
+.refim a{display:block;line-height:0}
+.refim img{width:100%;height:118px;object-fit:cover;object-position:center;display:block;background:var(--panel)}
+.refim figcaption{display:flex;flex-direction:column;gap:3px;padding:8px 9px 9px;font-size:11px;line-height:1.35;color:var(--tx2)}
+.refim figcaption em{font-style:normal;font:700 9px Inter,sans-serif;letter-spacing:1.5px;text-transform:uppercase;color:var(--tx3)}
+.refim .sinnota{color:var(--tx3)}
+/* Los botones de cada imagen solo aparecen al apuntarla; en táctil, siempre
+   (no hay hover que revelar y esconderlos los volvería inalcanzables). */
+.refacts{display:flex;gap:6px;position:absolute;top:7px;right:7px;opacity:0;transition:opacity var(--dur-1) var(--ease-out)}
+.refim:hover .refacts,.refim:focus-within .refacts{opacity:1}
+.refacts .btn{backdrop-filter:blur(6px)}
+
+.copyprop{display:flex;flex-direction:column;gap:7px;position:relative}
+.copyprop .refacts{position:static;opacity:1;align-self:flex-start}
+
+/* Contador en las tarjetas de las vistas: cuántas imágenes y cuántas
+   propuestas trae la pieza, para no tener que abrirla a ciegas. */
+.refbdg{display:inline-flex;align-items:center;gap:5px;height:19px;padding:0 7px;border-radius:10px;border:1px solid var(--line2);background:var(--panel2);color:var(--tx2);font:700 9.5px/1 Inter,sans-serif;letter-spacing:.5px;flex:none}
+.refbdg i{width:6px;height:6px;flex:none}
+.refbdg i.im{border-radius:1px;background:var(--crimson)}
+.refbdg i.cp{border-radius:50%;background:var(--tt)}
+
+/* El selector de archivo nativo con la piel del resto de los campos. */
+.fld input[type=file]{padding:9px;font-size:12px;color:var(--tx2);cursor:pointer}
+.fld input[type=file]::file-selector-button{margin-right:10px;background:var(--panel2);border:1px solid var(--line2);border-radius:7px;padding:7px 11px;color:var(--tx);font:700 10px Inter,sans-serif;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer}
+.fld input[type=file]::file-selector-button:hover{border-color:var(--crimson)}
+.refnota{font-size:11.5px;line-height:1.45;color:var(--tx3);margin-top:-4px;max-width:46ch;text-wrap:pretty}
+
+/* En táctil no hay hover que revele nada, así que los controles de cada
+   imagen se quedan visibles y crecen a 40px: por debajo de eso no se
+   aciertan con el pulgar. */
+@media(pointer:coarse){
+ .refacts{opacity:1}
+ .refadd{min-height:44px}
+ .refacts .btn{min-height:40px;min-width:40px}
+}
+@media(max-width:480px){
+ .refgrid{grid-template-columns:repeat(auto-fill,minmax(112px,1fr))}
+ .refim img{height:104px}
+}
+@media(prefers-reduced-motion:reduce){.refacts{transition:none}}

@@ -210,7 +210,7 @@ const emptyMini=(cod,m)=>`<div class="empty vacio mini"><div class="txt"><div cl
 /* ---------- PENDIENTES (kanban con arrastre) ---------- */
 function vPend(){
  const ts=byBrand(TASKS).filter(t=>taskFilter==='todas'||t.prio===taskFilter);
- const col=(k,n)=>`<div class="col" data-col="${k}"><h3>${n} <em>${ts.filter(t=>t.col===k).length}</em></h3><div class="drop" data-drop="${k}">${ts.filter(t=>t.col===k).map(t=>{const di=dueInfo(t);return `<div class="tk" draggable="true" data-task="${t.id}"${t.col==='done'?' style="opacity:.75"':''}><span class="prio ${t.prio}"></span><div class="tt">${t.t}</div><div class="mt"><span class="tag ${t.prio}">${t.prio.toUpperCase()}</span><span class="tag ${marca(t.brand).clase}">${(t.srv||t.brand).toUpperCase()}</span></div>${t.col==='prog'?`<div class="tr mini"><i style="width:${t.prog}%"></i></div>`:''}<div class="ft"><span class="who"><span class="av xs">${t.owner.slice(0,2).toUpperCase()}</span>${t.owner}</span><span${di.late?' style="color:var(--bad)"':''}>${di.label}</span></div></div>`}).join('')||'<div class="meta" style="padding:12px 4px">Suelta una tarjeta aquí.</div>'}</div></div>`;
+ const col=(k,n)=>`<div class="col" data-col="${k}"><h3>${n} <em>${ts.filter(t=>t.col===k).length}</em></h3><div class="drop" data-drop="${k}">${ts.filter(t=>t.col===k).map(t=>{const di=dueInfo(t);return `<div class="tk" draggable="true" data-task="${t.id}"${t.col==='done'?' style="opacity:.75"':''}><span class="prio ${t.prio}"></span><div class="tt">${t.t}</div><div class="mt"><span class="tag ${t.prio}">${t.prio.toUpperCase()}</span><span class="tag ${marca(t.brand).clase}">${(t.srv||t.brand).toUpperCase()}</span>${refBdg('tarea',t.id)}</div>${t.col==='prog'?`<div class="tr mini"><i style="width:${t.prog}%"></i></div>`:''}<div class="ft"><span class="who"><span class="av xs">${t.owner.slice(0,2).toUpperCase()}</span>${t.owner}</span><span${di.late?' style="color:var(--bad)"':''}>${di.label}</span></div></div>`}).join('')||'<div class="meta" style="padding:12px 4px">Suelta una tarjeta aquí.</div>'}</div></div>`;
  return hero()+`<div class="fbar">${['todas','alta','media','baja'].map(f=>`<button class="chip ${taskFilter===f?'act':''}" data-tf="${f}">${f.toUpperCase()} · ${f==='todas'?byBrand(TASKS).length:byBrand(TASKS).filter(t=>t.prio===f).length}</button>`).join('')}<span class="meta" style="margin-left:auto">Arrastra las tarjetas entre columnas</span><button class="btn sm" data-new="tarea">+ Nueva tarea</button></div>
  <div class="kb">${col('todo','POR HACER')}${col('prog','EN PROGRESO')}${col('done','LISTO')}</div>`;
 }
@@ -237,8 +237,8 @@ function vPub(){
  ps=[...ps].sort((a,b)=>{const k=pubSort.k,x=a[k]??'',y=b[k]??'';return (x<y?-1:x>y?1:0)*pubSort.dir});
  const ar=(k)=>pubSort.k===k?(pubSort.dir===1?' ▲':' ▼'):'';
  const table=`<div class="card" style="padding:16px 16px 6px"><div class="tblwrap"><table><thead><tr><th class="so" data-sort="t" style="width:36%">PUBLICACIÓN${ar('t')}</th><th class="so" data-sort="brand">MARCA${ar('brand')}</th><th class="so" data-sort="pf">PLATAFORMA${ar('pf')}</th><th class="so" data-sort="st">ESTADO${ar('st')}</th><th class="so" data-sort="d">FECHA${ar('d')}</th><th class="so" data-sort="reach" style="text-align:right">ALCANCE${ar('reach')}</th><th class="so" data-sort="eng" style="text-align:right">INTERACC.${ar('eng')}</th></tr></thead><tbody>
- ${ps.map(p=>`<tr data-post="${p.id}"><td><div style="display:flex;align-items:center;gap:11px"><img class="thumb" src="${p.thumb}" alt=""><b>${p.t}</b></div></td><td><span class="tag ${marca(p.brand).clase}">${(p.srv||p.brand).toUpperCase()}</span></td><td>${pill(p.pf)}</td><td><span class="st ${p.st}">${p.st.toUpperCase()}</span></td><td>${dlabel(p.d)}${p.h?' · '+p.h:''}</td><td style="text-align:right">${p.reach?'<b>'+fmt(p.reach)+'</b>':'—'}</td><td style="text-align:right">${p.eng?fmt(p.eng):'—'}</td></tr>`).join('')}</tbody></table></div></div>`;
- const gal=`<div class="gal">${ps.map(p=>`<figure class="gcard" data-post="${p.id}"><img src="${p.thumb}" alt=""><span class="scan"></span><span class="gbar ${p.pf}"></span><span class="hud tl"></span><span class="hud br"></span><figcaption><div class="gt">${p.t}</div><div class="gm"><span class="st ${p.st}">${p.st.toUpperCase()}</span><span class="meta">${dlabel(p.d)}${p.h?' · '+p.h:''}</span></div><div class="gm">${pill(p.pf)}${brandTag(p.brand)}${p.reach?`<span class="meta" style="margin-left:auto">${fmt(p.reach)}</span>`:''}</div></figcaption></figure>`).join('')}</div>`;
+ ${ps.map(p=>`<tr data-post="${p.id}"><td><div style="display:flex;align-items:center;gap:11px"><img class="thumb" src="${p.thumb}" alt=""><b>${p.t}</b>${refBdg('publicacion',p.id)}</div></td><td><span class="tag ${marca(p.brand).clase}">${(p.srv||p.brand).toUpperCase()}</span></td><td>${pill(p.pf)}</td><td><span class="st ${p.st}">${p.st.toUpperCase()}</span></td><td>${dlabel(p.d)}${p.h?' · '+p.h:''}</td><td style="text-align:right">${p.reach?'<b>'+fmt(p.reach)+'</b>':'—'}</td><td style="text-align:right">${p.eng?fmt(p.eng):'—'}</td></tr>`).join('')}</tbody></table></div></div>`;
+ const gal=`<div class="gal">${ps.map(p=>`<figure class="gcard" data-post="${p.id}"><img src="${p.thumb}" alt=""><span class="scan"></span><span class="gbar ${p.pf}"></span><span class="hud tl"></span><span class="hud br"></span><figcaption><div class="gt">${p.t}</div><div class="gm"><span class="st ${p.st}">${p.st.toUpperCase()}</span><span class="meta">${dlabel(p.d)}${p.h?' · '+p.h:''}</span></div><div class="gm">${pill(p.pf)}${brandTag(p.brand)}${refBdg('publicacion',p.id)}${p.reach?`<span class="meta" style="margin-left:auto">${fmt(p.reach)}</span>`:''}</div></figcaption></figure>`).join('')}</div>`;
  return hero()+`<div class="fbar">${[['todas','TODAS'],['publicada','PUBLICADAS'],['programada','PROGRAMADAS'],['borrador','BORRADORES']].map(([k,n])=>`<button class="chip ${pubFilter===k?'act':''}" data-pubf="${k}">${n} · ${k==='todas'?byBrand(POSTS).length:byBrand(POSTS).filter(p=>p.st===k).length}</button>`).join('')}<span style="width:1px;height:22px;background:var(--line)"></span>${Object.keys(PF).map(k=>`<button class="chip ${pfFilter===k?'act':''}" data-pff="${k}">${PF[k].n}</button>`).join('')}
  <div class="seg sm" style="margin-left:auto;width:150px"><button class="${pubMode==='tabla'?'act':''}" data-mode="tabla">TABLA</button><button class="${pubMode==='galeria'?'act':''}" data-mode="galeria">GALERÍA</button></div><button class="btn sm" data-new="publicación">+ Nueva</button></div>
  ${ps.length?(pubMode==='tabla'?table:gal):emptyState('Ninguna publicación coincide con estado, plataforma y marca.','filtros')}
@@ -275,7 +275,7 @@ function vIdeas(){
  return hero()+`<div class="ideasgrid" style="display:grid;gap:15px;align-items:start">
  <div style="display:flex;flex-direction:column;gap:14px">
  <div class="fbar">${[['todas','TODAS'],['aprobada','APROBADAS'],['revision','EN REVISIÓN']].map(([k,n])=>`<button class="chip ${ideaFilter===k?'act':''}" data-if="${k}">${n} · ${k==='todas'?byBrand(IDEAS).length:byBrand(IDEAS).filter(i=>i.st===k).length}</button>`).join('')}<div class="seg sm" style="margin-left:auto;width:190px"><button class="${ideaSort==='impacto'?'act':''}" data-is="impacto">MÁS IMPACTO</button><button class="${ideaSort==='esfuerzo'?'act':''}" data-is="esfuerzo">MENOS ESFUERZO</button></div><button class="btn sm" data-new="idea">+ Idea</button></div>
- <div class="g3">${is.map(i=>`<div class="idea" data-idea="${i.id}"><div style="display:flex;gap:6px">${pill(i.pf)}${brandTag(i.brand)}</div><h4>${i.t}</h4><p>${i.d.slice(0,140)}${i.d.length>140?'…':''}</p><div class="ie"><div><div class="lbl">IMPACTO</div><div class="pips">${[1,2,3,4,5].map(n=>`<i class="${n<=i.imp?'f':''}"></i>`).join('')}</div></div><div><div class="lbl">ESFUERZO</div><div class="pips e">${[1,2,3,4,5].map(n=>`<i class="${n<=i.eff?'f':''}"></i>`).join('')}</div></div></div></div>`).join('')||emptyState('Sin ideas con este filtro. Crea una con «+ Idea».')}</div></div>
+ <div class="g3">${is.map(i=>`<div class="idea" data-idea="${i.id}"><div style="display:flex;gap:6px;flex-wrap:wrap">${pill(i.pf)}${brandTag(i.brand)}${refBdg('idea',i.id)}</div><h4>${i.t}</h4><p>${i.d.slice(0,140)}${i.d.length>140?'…':''}</p><div class="ie"><div><div class="lbl">IMPACTO</div><div class="pips">${[1,2,3,4,5].map(n=>`<i class="${n<=i.imp?'f':''}"></i>`).join('')}</div></div><div><div class="lbl">ESFUERZO</div><div class="pips e">${[1,2,3,4,5].map(n=>`<i class="${n<=i.eff?'f':''}"></i>`).join('')}</div></div></div></div>`).join('')||emptyState('Sin ideas con este filtro. Crea una con «+ Idea».')}</div></div>
  <div class="card"><header><h3>TENDENCIAS DEL SECTOR</h3><span class="lbl">GTA RP · SEMANAL</span></header>
  <div class="srch" style="max-width:none;margin-bottom:12px"><input id="trendQ" placeholder="Buscar tendencia…"></div>
  <div id="trendList">${TRENDS.map(trendRow).join('')||emptyMini('RADAR EN ESPERA','El radar semanal de Claude aún no carga tendencias.')}</div>
@@ -569,7 +569,8 @@ function openPost(id){const p=POSTS.find(x=>x.id===id);if(!p)return;const done=p
  <div style="display:flex;gap:7px;flex-wrap:wrap">${pill(p.pf)}<span class="st ${p.st}">${p.st.toUpperCase()}</span><span class="tag ${marca(p.brand).clase}">${(p.srv||p.brand).toUpperCase()}</span></div>
  <dl class="kv"><dt>Publicación</dt><dd>${dlabel(p.d)}${p.h?' · '+p.h:''}</dd><dt>Formato</dt><dd>${p.fmt}</dd><dt>Responsable</dt><dd>${p.owner}</dd>${p.url?`<dt>Enlace</dt><dd><a href="${p.url}" target="_blank" style="color:var(--crimson-tx)">${p.url}</a></dd>`:''}<dt>Alcance</dt><dd>${p.reach?fmt(p.reach)+' · '+fmt(p.eng)+' interacciones · '+(p.eng/p.reach*100).toFixed(1)+'%':'Pendiente de publicar'}</dd></dl>
  ${p.copy?`<div><div class="lbl" style="margin-bottom:8px">TEXTO DE LA PUBLICACIÓN</div><div class="copybox">${p.copy}</div></div>`:''}
- ${p.chk.length?`<div><div class="lbl" style="margin-bottom:10px;display:flex;justify-content:space-between">CHECKLIST<span id="chkNum" style="color:var(--crimson-tx)">${done}/${p.chkState.length}</span></div><div class="tr mini" style="margin-bottom:12px"><i id="chkProg" style="width:${done/p.chkState.length*100}%"></i></div><div class="chkl">${p.chk.map((c,i)=>`<label><input type="checkbox" data-chk="${p.id}:${i}" ${p.chkState[i]?'checked':''}><span>${c}</span></label>`).join('')}</div></div>`:''}`,
+ ${p.chk.length?`<div><div class="lbl" style="margin-bottom:10px;display:flex;justify-content:space-between">CHECKLIST<span id="chkNum" style="color:var(--crimson-tx)">${done}/${p.chkState.length}</span></div><div class="tr mini" style="margin-bottom:12px"><i id="chkProg" style="width:${done/p.chkState.length*100}%"></i></div><div class="chkl">${p.chk.map((c,i)=>`<label><input type="checkbox" data-chk="${p.id}:${i}" ${p.chkState[i]?'checked':''}><span>${c}</span></label>`).join('')}</div></div>`:''}
+ ${bloqueRefs('publicacion',p.id)}`,
  `<button class="btn gh2" id="pCopy">Copiar texto</button>${p.st!=='publicada'?`<button class="btn gh2" id="pDate">Reprogramar</button><button class="btn" style="flex:1" id="pPub">Marcar publicada</button>`:`<button class="btn" style="flex:1" id="pMet">Registrar métricas</button>`}<button class="btn gh2" id="pDel" title="Eliminar">✕</button>`);
  setTimeout(()=>{
   const c=$('#pCopy');if(c)c.onclick=()=>{navigator.clipboard&&navigator.clipboard.writeText(p.copy||p.t);toast('Texto copiado al portapapeles')};
@@ -580,7 +581,8 @@ function openPost(id){const p=POSTS.find(x=>x.id===id);if(!p)return;const done=p
    const e2=prompt('Interacciones:',p.eng||'');if(e2===null)return;
    persist(()=>dbPatchPost(p.id,{views:parseInt(r||'0',10),interactions:parseInt(e2||'0',10)}),'Métricas guardadas');closeDrawer()};
   const del=$('#pDel');if(del)del.onclick=()=>{if(!confirm('¿Eliminar esta publicación?'))return;
-   persist(()=>dbDeletePost(p.id),'Publicación eliminada');closeDrawer()};
+   persist(async()=>{await dbDeleteRefsDe('publicacion',p.id);await dbDeletePost(p.id)},'Publicación eliminada');closeDrawer()};
+  wireRefs('publicacion',p.id,()=>openPost(p.id));
  },instantDelay());
 }
 /* La ficha del drawer se pinta de forma síncrona, así que los
@@ -591,7 +593,8 @@ function openTask(id){const t=TASKS.find(x=>x.id===id);if(!t)return;const di=due
  drawer(t.t,`<div style="display:flex;gap:7px;flex-wrap:wrap"><span class="tag ${t.prio}">${t.prio.toUpperCase()}</span><span class="tag ${marca(t.brand).clase}">${(t.srv||t.brand).toUpperCase()}</span>${t.pf?pill(t.pf):''}</div>
  ${t.desc?`<p style="color:var(--tx2);font-size:12.5px">${t.desc}</p>`:''}
  <dl class="kv"><dt>Estado</dt><dd>${({todo:'Por hacer',prog:'En progreso',done:'Listo'})[t.col]}</dd><dt>Responsable</dt><dd>${t.owner}</dd><dt>Entrega</dt><dd${di.late?' style="color:var(--bad)"':''}>${di.label}</dd></dl>
- <div><div class="lbl" style="margin-bottom:8px">PROGRESO · ${t.prog}%</div><div class="tr mini"><i style="width:${t.prog}%"></i></div></div>`,
+ <div><div class="lbl" style="margin-bottom:8px">PROGRESO · ${t.prog}%</div><div class="tr mini"><i style="width:${t.prog}%"></i></div></div>
+ ${bloqueRefs('tarea',t.id)}`,
  `<button class="btn gh2" id="tProg">Progreso…</button>${t.col!=='done'?`<button class="btn" style="flex:1" id="tNext">Avanzar estado</button>`:`<button class="btn gh2" style="flex:1" id="tBack">Reabrir</button>`}<button class="btn gh2" id="tDel" title="Eliminar">✕</button>`);
  setTimeout(()=>{
   const n=$('#tNext');if(n)n.onclick=()=>{const to=t.col==='todo'?'prog':'done';
@@ -601,7 +604,8 @@ function openTask(id){const t=TASKS.find(x=>x.id===id);if(!t)return;const di=due
    const n2=Math.max(0,Math.min(100,parseInt(v||'0',10)));
    persist(()=>dbPatchTask(t.id,{prog:n2,col:n2===100?'done':n2>0?'prog':t.col==='done'?'prog':t.col}),'Progreso actualizado');closeDrawer()};
   const del=$('#tDel');if(del)del.onclick=()=>{if(!confirm('¿Eliminar esta tarea?'))return;
-   persist(()=>dbDeleteTask(t.id),'Tarea eliminada');closeDrawer()};
+   persist(async()=>{await dbDeleteRefsDe('tarea',t.id);await dbDeleteTask(t.id)},'Tarea eliminada');closeDrawer()};
+  wireRefs('tarea',t.id,()=>openTask(t.id));
  },instantDelay());
 }
 function openIdea(id){const i=IDEAS.find(x=>x.id===id);if(!i)return;
@@ -609,16 +613,21 @@ function openIdea(id){const i=IDEAS.find(x=>x.id===id);if(!i)return;
  <p style="color:var(--tx2);font-size:12.5px">${i.d}</p>
  ${i.why?`<div><div class="lbl" style="margin-bottom:8px">POR QUÉ AHORA</div><div class="copybox">${i.why}</div></div>`:''}
  ${i.copy?`<div><div class="lbl" style="margin-bottom:8px">COPY SUGERIDO</div><div class="copybox">${i.copy}</div></div>`:''}
- <div style="display:flex;gap:18px"><div style="flex:1"><div class="lbl" style="margin-bottom:7px">IMPACTO ${i.imp}/5</div><div class="pips">${[1,2,3,4,5].map(n=>`<i class="${n<=i.imp?'f':''}"></i>`).join('')}</div></div><div style="flex:1"><div class="lbl" style="margin-bottom:7px">ESFUERZO ${i.eff}/5</div><div class="pips e">${[1,2,3,4,5].map(n=>`<i class="${n<=i.eff?'f':''}"></i>`).join('')}</div></div></div>`,
+ <div style="display:flex;gap:18px"><div style="flex:1"><div class="lbl" style="margin-bottom:7px">IMPACTO ${i.imp}/5</div><div class="pips">${[1,2,3,4,5].map(n=>`<i class="${n<=i.imp?'f':''}"></i>`).join('')}</div></div><div style="flex:1"><div class="lbl" style="margin-bottom:7px">ESFUERZO ${i.eff}/5</div><div class="pips e">${[1,2,3,4,5].map(n=>`<i class="${n<=i.eff?'f':''}"></i>`).join('')}</div></div></div>
+ ${bloqueRefs('idea',i.id)}`,
  `${i.copy?'<button class="btn gh2" id="iCopy">Copiar copy</button>':''}${i.st!=='aprobada'?'<button class="btn gh2" id="iOk">Aprobar</button>':''}<button class="btn" style="flex:1" id="iConv">Convertir en publicación</button><button class="btn gh2" id="iDel" title="Descartar">✕</button>`);
  setTimeout(()=>{
   const c=$('#iCopy');if(c)c.onclick=()=>{navigator.clipboard&&navigator.clipboard.writeText(i.copy);toast('Copy copiado')};
   const ok=$('#iOk');if(ok)ok.onclick=()=>{persist(()=>dbPatchIdea(i.id,{status:'aprobada'}),'Idea aprobada');closeDrawer()};
   const cv=$('#iConv');if(cv)cv.onclick=()=>{
-   persist(async()=>{await dbCreatePost({t:i.t,brand:normMarca(i.brand),srv:servidoresDe(i.brand)[0],pf:i.pf,st:'borrador',copy:i.copy||i.d,chk:['Arte','Copy revisado','Programada']});
+   persist(async()=>{const hecho=await dbCreatePost({t:i.t,brand:normMarca(i.brand),srv:servidoresDe(i.brand)[0],pf:i.pf,st:'borrador',copy:i.copy||i.d,chk:['Arte','Copy revisado','Programada']});
+    /* Las imagenes y las propuestas de copy se van con la pieza nueva. */
+    const nueva=Array.isArray(hecho)?hecho[0]:hecho;
+    if(nueva&&nueva.id)await dbMoverRefs('idea',i.id,'publicacion',nueva.id);
     await dbPatchIdea(i.id,{status:'convertida'})},'Idea convertida en borrador de publicación');closeDrawer()};
   const del=$('#iDel');if(del)del.onclick=()=>{if(!confirm('¿Descartar esta idea?'))return;
    persist(()=>dbPatchIdea(i.id,{status:'descartada'}),'Idea descartada');closeDrawer()};
+  wireRefs('idea',i.id,()=>openIdea(i.id));
  },instantDelay());
 }
 function openTrend(id){const r=TRENDS.find(x=>x.id===id);if(!r)return;
@@ -632,6 +641,120 @@ function openTrend(id){const r=TRENDS.find(x=>x.id===id);if(!r)return;
   const b=$('#rIdea');if(b)b.onclick=()=>{
    persist(()=>dbCreateIdea({t:r.t,brand:brand==='ALL'?'ESP':normMarca(brand),pf:'tt',imp:4,eff:3,d:r.note,why:'Tendencia del radar ('+r.rel+' relevancia).'}),'Idea creada desde la tendencia');closeDrawer()};
  },instantDelay());
+}
+/* ---------- REFERENCIAS: IMAGENES Y PROPUESTAS DE COPY ----------
+   Para que el equipo vea como va a quedar la pieza antes de que exista:
+   capturas, bocetos, moodboard. Y para que el copy se proponga en varias
+   versiones y el equipo elija, en vez de una sola casilla de texto.
+
+   Cuelgan de una idea, de una publicacion o de una tarea del kanban.
+   Quien sube queda firmado en `autor`, asi que se sabe de quien es cada
+   propuesta sin preguntar.
+
+   NO lleva candado de rol a proposito. Si solo MeDed pudiera subir, el
+   resto del equipo no podria proponer copy, que es justo para lo que
+   sirve el apartado. Si algun dia hay que cerrarlo, es la misma linea
+   que puedeEditarBrief() y va aqui.
+
+   Mientras supabase/referencias.sql no corra, HUB.refs es falso y la
+   ficha lo dice en vez de mostrar una galeria vacia como si nadie
+   hubiera subido nada. */
+const refsDe=(ref,id,tipo)=>REFS.filter(r=>r.ref===ref&&r.refId===id&&r.tipo===tipo);
+const REF_N={idea:'idea',publicacion:'publicación',tarea:'tarea'};
+
+/* Contador para las tarjetas de las vistas: silencioso cuando no hay nada. */
+function refBdg(ref,id){
+ if(!HUB.refs)return '';
+ const im=refsDe(ref,id,'imagen').length,cp=refsDe(ref,id,'copy').length;
+ if(!im&&!cp)return '';
+ return `<span class="refbdg" title="${im} imagen${im===1?'':'es'} · ${cp} propuesta${cp===1?'':'s'} de copy">`+
+  (im?`<i class="im"></i>${im}`:'')+(cp?`<i class="cp"></i>${cp}`:'')+`</span>`;
+}
+
+function bloqueRefs(ref,id){
+ if(!HUB.refs)
+  return `<div class="refs"><div class="lbl refhead">REFERENCIAS Y COPY</div>
+   ${emptyMini('FALTA LA TABLA','Corre supabase/referencias.sql y aquí podrás subir imágenes de muestra y propuestas de copy.')}</div>`;
+ const ims=refsDe(ref,id,'imagen'),cps=refsDe(ref,id,'copy');
+ const galeria=ims.length?`<div class="refgrid">${ims.map(r=>`<figure class="refim">
+   <a href="${esc(r.url)}" target="_blank" rel="noopener"><img src="${esc(r.url)}" alt="${esc(r.texto||'Referencia visual')}" loading="lazy"></a>
+   <figcaption>${r.texto?esc(r.texto):'<span class="sinnota">Sin nota</span>'}<em>${esc(r.autor)}</em></figcaption>
+   <div class="refacts">${ref==='publicacion'?`<button class="btn gh2 sm" data-portada="${r.id}">Portada</button>`:''}<button class="btn gh2 sm" data-refdel="${r.id}" aria-label="Quitar imagen">✕</button></div>
+  </figure>`).join('')}</div>`
+  :`<p class="refvacio">Todavía nadie sube una imagen. Pon una captura o un boceto para que el equipo vea cómo va a quedar.</p>`;
+ const copys=cps.length?cps.map((r,i)=>`<div class="copyprop">
+   <div class="lbl">OPCIÓN ${i+1} · ${esc(r.autor)}${r.d?' · '+dlabel(r.d):''}</div>
+   <div class="copybox">${esc(r.texto)}</div>
+   <div class="refacts"><button class="btn gh2 sm" data-refcopy="${r.id}">Copiar</button><button class="btn gh2 sm" data-refdel="${r.id}" aria-label="Quitar propuesta">✕</button></div>
+  </div>`).join('')
+  :`<p class="refvacio">Sin propuestas de copy. Escribe una versión del texto y el equipo la revisa aquí mismo.</p>`;
+ return `<div class="refs">
+  <div class="lbl refhead">REFERENCIAS VISUALES${ims.length?`<span>${ims.length}</span>`:''}</div>
+  ${galeria}
+  <button class="btn gh2 sm refadd" data-refnew="imagen">+ Agregar imagen</button>
+  <div class="lbl refhead">PROPUESTAS DE COPY${cps.length?`<span>${cps.length}</span>`:''}</div>
+  ${copys}
+  <button class="btn gh2 sm refadd" data-refnew="copy">+ Propuesta de copy</button>
+ </div>`;
+}
+
+/* `volver` repinta la ficha del padre: persist() recarga los datos y
+   re-renderiza la vista de fondo, pero el drawer hay que armarlo otra vez
+   para que la galeria incluya lo que se acaba de subir. */
+function wireRefs(ref,id,volver){
+ $$('#dBody [data-refnew]').forEach(e=>e.onclick=()=>formRef(ref,id,e.dataset.refnew,volver));
+ $$('#dBody [data-refcopy]').forEach(e=>e.onclick=()=>{
+  const r=REFS.find(x=>x.id===e.dataset.refcopy);if(!r)return;
+  if(navigator.clipboard)navigator.clipboard.writeText(r.texto);
+  toast('Propuesta copiada al portapapeles');
+ });
+ $$('#dBody [data-refdel]').forEach(e=>e.onclick=async()=>{
+  const r=REFS.find(x=>x.id===e.dataset.refdel);if(!r)return;
+  if(!confirm(r.tipo==='imagen'?'¿Quitar esta imagen de la ficha?':'¿Quitar esta propuesta de copy?'))return;
+  await persist(()=>dbDeleteRef(r.id),r.tipo==='imagen'?'Imagen quitada':'Propuesta quitada');
+  volver();
+ });
+ /* Solo en publicaciones: usar la referencia como portada de la pieza. */
+ $$('#dBody [data-portada]').forEach(e=>e.onclick=async()=>{
+  const r=REFS.find(x=>x.id===e.dataset.portada);if(!r)return;
+  await persist(()=>dbPatchPost(id,{thumb:r.url}),'Portada actualizada');
+  volver();
+ });
+}
+
+function formRef(ref,id,tipo,volver){
+ const cuerpo=tipo==='imagen'
+  ? `<div class="fld"><label class="lbl" for="f_arch">ARCHIVO</label>
+     <input id="f_arch" type="file" accept="image/jpeg,image/png,image/webp,image/gif,image/avif"></div>
+     <p class="refnota">JPG, PNG, WEBP o GIF, hasta ${MEDIA_MB} MB. Se guarda en Supabase Storage.</p>
+     <div class="fld"><label class="lbl" for="f_url">…O PEGA UNA URL QUE YA EXISTA</label>
+     <input id="f_url" placeholder="https://…"></div>
+     <div class="fld"><label class="lbl" for="f_nota">NOTA (OPCIONAL)</label>
+     <input id="f_nota" placeholder="Qué hay que ver aquí"></div>`
+  : `<div class="fld"><label class="lbl" for="f_txt">TEXTO PROPUESTO</label>
+     <textarea id="f_txt" rows="8" placeholder="Escribe el caption tal como saldría publicado…"></textarea></div>
+     <p class="refnota">Queda firmada con tu nombre. Deja las versiones que quieras: el equipo elige una.</p>`;
+ drawer(tipo==='imagen'?'Agregar imagen':'Nueva propuesta de copy',cuerpo,
+  `<button class="btn gh2" id="rBack">Volver</button><button class="btn" style="flex:1" id="rSave">Guardar</button>`);
+ $('#rBack').onclick=volver;
+ $('#rSave').onclick=async()=>{
+  if(tipo==='copy'){
+   const t=$('#f_txt').value.trim();
+   if(!t)return toast('Escribe el texto de la propuesta.');
+   await persist(()=>dbCreateRef({ref,refId:id,tipo:'copy',texto:t}),'Propuesta guardada');
+   return volver();
+  }
+  const f=$('#f_arch').files[0],u=$('#f_url').value.trim(),nota=$('#f_nota').value.trim();
+  if(!f&&!u)return toast('Elige un archivo o pega una URL.');
+  if(f&&f.size>MEDIA_MB*1048576)return toast('La imagen pesa más de '+MEDIA_MB+' MB. Compártela más ligera.');
+  const b=$('#rSave');b.disabled=true;b.innerHTML='<span class="spin"></span>Subiendo';
+  let url;
+  try{url=f?await dbSubirImagen(f,ref):u}
+  catch(e){console.error(e);b.disabled=false;b.textContent='Guardar';
+   return toast('No se pudo subir el archivo. Revisa que el bucket gtahub-media exista; mientras, pega una URL.')}
+  await persist(()=>dbCreateRef({ref,refId:id,tipo:'imagen',url,texto:nota}),'Imagen agregada a la '+REF_N[ref]);
+  volver();
+ };
 }
 /* ---------- BRIEF DE MARCA ----------
    La guia de voz de cada marca. La edita solo marketing: el rol 'mkt' de

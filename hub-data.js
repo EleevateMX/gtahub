@@ -52,6 +52,11 @@ const CUENTA=[];
    Lo llena supabase/manychat-detalle.sql. */
 const MC_PASOS=[];
 const MC_BOTONES=[];
+/* Referencias: imagenes de muestra y propuestas de copy colgadas de una
+   idea, una publicacion o una tarea. Lo llena supabase/referencias.sql;
+   si la tabla no existe, HUB.refs queda en falso y la ficha lo dice en vez
+   de fingir que nadie ha subido nada. */
+const REFS=[];
 /* Cuentas de cada marca en cada red: {ESP:{ig:{cuenta,url}},…}. Lo llena
    hubLoad desde gtahub_cuentas; queda vacío si la migración no ha corrido. */
 const CUENTAS={};

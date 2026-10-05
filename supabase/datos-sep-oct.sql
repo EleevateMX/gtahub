@@ -21,6 +21,9 @@ begin;
 
 -- ---------------------------------------------------------------------------
 -- 1) Las dos tareas vencidas de "Por hacer"
+--    NOTA: pendientes.sql ya hace esto y mas (vacia la columna completa y
+--    deja un solo pendiente). Este bloque se queda por si corres solo este
+--    archivo; correr los dos no hace dano.
 -- ---------------------------------------------------------------------------
 delete from public.gtahub_tareas
 where col = 'todo'

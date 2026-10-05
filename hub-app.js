@@ -169,7 +169,7 @@ function vInicio(){
    <span class="mhead"><b class="tag ${MARCAS[id].clase}">${id}</b><span class="meta">${MARCAS[id].servidores.join(' · ')}</span></span>
    <span class="mnums"><span><i>${pubIn(mp,daysAgoISO(7),'9999').length}</i>publicadas 7d</span><span><i>${mp.filter(x=>x.st!=='publicada').length}</i>en cola</span><span><i class="${atrasadas?'dn':''}">${abiertas}</i>pendientes</span></span>
   </button>`}).join('')}</div>`;
- return hero(`<div style="display:flex;gap:8px;margin-top:16px"><button class="btn sm" data-new="publicación">+ Nueva publicación</button><button class="btn gh2 sm" data-goto="calendario">Ver calendario</button></div>`)
+ return hero(`<div class="heroacts"><button class="btn sm" data-new="publicación">+<span class="lgtxt"> Nueva publicación</span></button><button class="btn gh2 sm" data-goto="calendario">Ver<span class="lgtxt"> calendario</span></button></div>`)
  +desglose
  +`<div class="g4">
  ${kpi('PUBLICADAS · 7 DÍAS',p7,p7>=p7prev?`<span class="up">▲ +${p7-p7prev}</span> vs. semana previa`:`<span class="dn">▼ ${p7-p7prev}</span> vs. semana previa`,sparkOf(wkSeries))}
@@ -287,17 +287,50 @@ function periodPosts(per){const from=daysAgoISO(+per);return byBrand(POSTS).filt
    flujo de bienvenida. Si la tabla no existe (migracion sin correr) MANYCHAT
    queda vacio y no se pinta nada: no se inventan numeros. */
 function mcDelta(hoy,ayer){
- if(!ayer)return'<span class="meta">Sin corte anterior</span>';
+ if(ayer==null)return'';
  const d=hoy-ayer;
  if(!ayer||!d)return'<span class="meta">Sin cambio</span>';
  const pct=Math.round(d/ayer*1000)/10;
  return `<span class="${d>=0?'up':'dn'}">${d>=0?'▲':'▼'} ${Math.abs(pct)}%</span> <span class="meta">${d>=0?'+':''}${fmt(d)} vs. corte anterior</span>`;
 }
 function mcFila(l,hoy,ayer,max){
- return `<div class="meter"><div class="lg"><span class="lbl">${l}</span><span><b style="color:var(--tx)">${fmt(hoy)}</b> <span class="meta">antes ${fmt(ayer)}</span></span></div>
+ /* ayer en null = no hay corte anterior: ni "antes X" ni barra fantasma,
+    que con un solo corte decian "antes 0" y eso no es cierto. */
+ const hay=ayer!=null;
+ return `<div class="meter"><div class="lg"><span class="lbl">${l}</span><span><b style="color:var(--tx)">${fmt(hoy)}</b>${hay?` <span class="meta">antes ${fmt(ayer)}</span>`:''}</span></div>
  <div class="tr"><i style="width:${Math.max(4,hoy/max*100)}%;background:var(--crimson)"></i></div>
- <div class="tr mini" style="margin-top:4px"><i style="width:${Math.max(2,ayer/max*100)}%;background:var(--line3)"></i></div>
- <div class="meta" style="margin-top:6px">${mcDelta(hoy,ayer)}</div></div>`;
+ ${hay?`<div class="tr mini" style="margin-top:4px"><i style="width:${Math.max(2,ayer/max*100)}%;background:var(--line3)"></i></div>`:''}
+ <div class="meta" style="margin-top:6px">${hay?mcDelta(hoy,ayer):'<span class="meta">Sin corte anterior para comparar</span>'}</div></div>`;
+}
+/* Bloque de cuenta en Metricas: la foto de Instagram a 30 dias. Con un solo
+   corte muestra los numeros; con dos o mas compara contra el anterior. */
+function cuentaBloque(){
+ const cs=byBrand(CUENTA);
+ const lista=cs.length?cs:CUENTA;
+ if(!lista.length)return'';
+ const hoy=lista[0],ayer=lista[1]||null;
+ const max=Math.max(1,hoy.repro,hoy.espect,ayer?ayer.repro:0,ayer?ayer.espect:0);
+ const tipos=[['HISTORIAS',hoy.historias],['REELS',hoy.reels],
+              ['PUBLICACIONES',hoy.posts],['EN VIVO',hoy.envivo]];
+ const sum=Math.max(1,tipos.reduce((a,t)=>a+t[1],0));
+ const seg=hoy.segNetos;
+ return `<div class="card" style="margin-top:15px"><header><h3>CUENTA DE INSTAGRAM · ${hoy.dias} DÍAS</h3>
+  <span class="lbl">CORTE ${dlabel(hoy.corte)}${ayer?' · ANTES '+dlabel(ayer.corte):''}</span></header>
+  <div class="g3 gmet">
+   ${mcFila('REPRODUCCIONES',hoy.repro,ayer?ayer.repro:null,max)}
+   ${mcFila('ESPECTADORES',hoy.espect,ayer?ayer.espect:null,max)}
+   <div class="meter"><div class="lg"><span class="lbl">SEGUIDORES NETOS</span>
+    <span><b style="color:var(--tx)">${seg>=0?'+':''}${fmt(seg)}</b>${ayer?` <span class="meta">antes ${ayer.segNetos>=0?'+':''}${fmt(ayer.segNetos)}</span>`:''}</span></div>
+    <div class="tr"><i style="width:${Math.min(100,Math.abs(seg)/Math.max(1,Math.abs(seg),ayer?Math.abs(ayer.segNetos):1)*100)}%;background:var(--${seg>=0?'ok':'bad'}-tx)"></i></div>
+    <div class="meta" style="margin-top:6px">${ayer?mcDelta(seg,ayer.segNetos):'<span class="meta">Altas menos bajas del periodo</span>'}</div></div>
+  </div>
+  <div class="mcpie" style="display:block">
+   <div class="lbl" style="margin-bottom:9px">VISUALIZACIONES POR TIPO DE CONTENIDO</div>
+   ${tipos.map(([l,v])=>`<div class="meter"><div class="lg"><span class="lbl">${l}</span>
+     <span><b style="color:var(--tx)">${v?fmt(v):'—'}</b> <span class="meta">${Math.round(v/sum*100)}%</span></span></div>
+     <div class="tr"><i style="width:${Math.max(v?3:0,v/sum*100)}%;background:var(--crimson)"></i></div></div>`).join('')}
+   <div class="meta" style="margin-top:10px">Interacciones del periodo <b style="color:var(--tx)">${fmt(hoy.inter)}</b>${hoy.nota?' · '+esc(hoy.nota):''}</div>
+  </div></div>`;
 }
 function mcBloque(){
  if(!MANYCHAT.length)return'';
@@ -309,10 +342,10 @@ function mcBloque(){
  const emb=[['ENTREGADO',hoy.entregado],['ABIERTO',hoy.abierto],['CLIC',hoy.clic]].filter(x=>x[1]!=null);
  return `<div class="card" style="margin-top:15px"><header><h3>MANYCHAT · ${hoy.flujo.toUpperCase()}</h3>
   <span class="lbl">CORTE ${dlabel(hoy.corte)}${ayer?' · ANTES '+dlabel(ayer.corte):''}</span></header>
-  <div class="g3">
-   ${mcFila('CONTACTOS ÚNICOS',hoy.contactos,ayer?ayer.contactos:0,max)}
-   ${mcFila('ENVÍOS DEL FLUJO',hoy.envios,ayer?ayer.envios:0,max)}
-   ${mcFila('BANDEJA DE ENTRADA',hoy.bandeja,ayer?ayer.bandeja:0,max)}
+  <div class="g3 gmet">
+   ${mcFila('CONTACTOS ÚNICOS',hoy.contactos,ayer?ayer.contactos:null,max)}
+   ${mcFila('ENVÍOS DEL FLUJO',hoy.envios,ayer?ayer.envios:null,max)}
+   ${mcFila('BANDEJA DE ENTRADA',hoy.bandeja,ayer?ayer.bandeja:null,max)}
   </div>
   <div class="mcpie">
    <span class="meta">Envíos por contacto <b style="color:var(--tx)">${porC(hoy)}</b>${ayer?` · antes ${porC(ayer)}`:''}</span>
@@ -345,7 +378,7 @@ function vMet(){
  <div class="g2"><div class="card"><header><h3>ALCANCE POR ${period==='7'?'DÍA':period==='30'?'TRAMO':'MES'}</h3><span class="lbl">■ VIEWS REGISTRADAS</span></header>${reach?`<div class="bars">${buckets.map(([r,l])=>`<div class="b" data-tip="${l} · ${fmt(r)} de alcance"><div class="bstack"><i style="height:${Math.max(4,r/maxB*100)}%;background:var(--crimson)"></i></div><span>${l}</span></div>`).join('')}</div>`:emptyState('Captura views en tus publicaciones para ver la gráfica.','grafica')}</div>
  <div class="card"><header><h3>ALCANCE POR PLATAFORMA</h3><span class="lbl">${period} DÍAS</span></header>${reach?pfAll.map(([k,v])=>`<div class="meter"><div class="lg">${pill(k)}<span><b style="color:var(--tx)">${v?fmt(v):'—'}</b>${reach?' · '+Math.round(v/reach*100)+'%':''}</span></div><div class="tr"><i style="width:${v/maxPf*100}%;background:var(--${k})"></i></div></div>`).join(''):emptyState('Ninguna plataforma registró alcance en este periodo.','plataformas')}</div></div>
  <div class="card" style="padding:16px 16px 6px"><header><h3>TOP DE PUBLICACIONES</h3><span class="meta">Clic para ver la ficha</span></header>${top.length?`<div class="tblwrap"><table><thead><tr><th style="width:40%">PUBLICACIÓN</th><th>MARCA</th><th>PLATAFORMA</th><th style="text-align:right">ALCANCE</th><th style="text-align:right">INTERACC.</th><th style="text-align:right">TASA</th></tr></thead><tbody>
- ${top.map(p=>`<tr data-post="${p.id}"><td><div style="display:flex;align-items:center;gap:11px"><img class="thumb" src="${p.thumb}" alt=""><b>${p.t}</b></div></td><td><span class="tag ${marca(p.brand).clase}">${(p.srv||p.brand).toUpperCase()}</span></td><td>${pill(p.pf)}</td><td style="text-align:right"><b>${fmt(p.reach)}</b></td><td style="text-align:right">${fmt(p.eng)}</td><td style="text-align:right"><span class="up">${(p.eng/p.reach*100).toFixed(1)}%</span></td></tr>`).join('')}</tbody></table></div>`:emptyState('Todavía no hay publicaciones con métricas en este periodo.','top')}</div>`+mcBloque();
+ ${top.map(p=>`<tr data-post="${p.id}"><td><div style="display:flex;align-items:center;gap:11px"><img class="thumb" src="${p.thumb}" alt=""><b>${p.t}</b></div></td><td><span class="tag ${marca(p.brand).clase}">${(p.srv||p.brand).toUpperCase()}</span></td><td>${pill(p.pf)}</td><td style="text-align:right"><b>${fmt(p.reach)}</b></td><td style="text-align:right">${fmt(p.eng)}</td><td style="text-align:right"><span class="up">${(p.eng/p.reach*100).toFixed(1)}%</span></td></tr>`).join('')}</tbody></table></div>`:emptyState('Todavía no hay publicaciones con métricas en este periodo.','top')}</div>`+cuentaBloque()+mcBloque();
 }
 /* ---------- FORMULARIOS ---------- */
 const OPT=(o,sel)=>o.map(([v,n])=>`<option value="${v}"${v===sel?' selected':''}>${n}</option>`).join('');

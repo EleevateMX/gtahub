@@ -196,7 +196,7 @@ tbody tr{cursor:pointer}tbody tr:hover td{background:var(--hover-soft)}
 .chip{background:var(--panel);border:1px solid var(--line);border-radius:7px;padding:8px 12px;font:700 10px/1 Inter;letter-spacing:1.5px;text-transform:uppercase;color:var(--tx3)}
 .chip:hover{color:var(--tx)}
 .chip.act{border-color:var(--crimson);color:var(--tx);background:rgba(var(--crimson-rgb),.12)}
-.hero{position:relative;border:1px solid var(--line);border-radius:12px;overflow:hidden;min-height:210px;display:flex;align-items:center;padding:20px 24px;background:var(--card)}
+.hero{position:relative;border:1px solid var(--line);border-radius:12px;overflow:hidden;min-height:210px;display:flex;align-items:center;padding:20px 24px;background:var(--card);flex:none}
 .hero img.bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.85;object-position:center 32%}
 .hero:after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,rgba(5,5,10,.94) 0%,rgba(5,5,10,.78) 38%,rgba(5,5,10,.2) 72%),var(--grid);background-size:auto,32px 32px}
 .hero:before{content:"";position:absolute;right:0;bottom:-25%;width:38%;height:150%;z-index:1;background:radial-gradient(closest-side,rgba(var(--crimson-rgb),.42),rgba(var(--crimson-rgb),.1) 58%,transparent 74%)}
@@ -204,6 +204,7 @@ tbody tr{cursor:pointer}tbody tr:hover td{background:var(--hover-soft)}
 .hero h3{font-size:20px;line-height:1.05}
 .hero p{color:var(--tx2);font-size:12.5px;margin-top:8px}
 .hero .char{position:absolute;right:22px;bottom:0;height:118%;min-width:150px;object-fit:contain;object-position:bottom;z-index:2}
+.heroacts{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
 /* kanban */
 .kb{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-items:start}
 .col{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:10px}
@@ -294,6 +295,20 @@ tbody tr{cursor:pointer}tbody tr:hover td{background:var(--hover-soft)}
  .g4,.g3{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}.g2,.ideasgrid{grid-template-columns:minmax(0,1fr)}
  .kb{grid-template-columns:minmax(0,1fr)}
  .cal .cl{min-height:52px}.cal .ev{display:none}
+ /* El boton principal se queda en "+": con la etiqueta completa, los tres
+    botones comian el ancho del titulo y el texto se partia en dos lineas. */
+ .top .lgtxt{display:none}
+ .top .btn.sm{padding:8px 11px;letter-spacing:1.5px}
+ /* El hero daba 56% del ancho al texto; en movil los botones no cabian y
+    recortaban su propia etiqueta. */
+ .hero .in{max-width:66%}
+ .hero .char{right:6px;min-width:120px}
+ .heroacts .btn{letter-spacing:1px;padding:11px 12px}
+ /* Las tablas siguen desplazandose a lo ancho, pero sin arrastrar la pagina. */
+ .tblwrap{overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
+ /* Los medidores de cuenta y Manychat necesitan el ancho completo: a dos
+    columnas las etiquetas se parten y el numero queda pegado. */
+ .gmet{grid-template-columns:minmax(0,1fr)}
  .cl .mdot{width:6px;height:6px;border-radius:50%}
  #tabbar{display:grid;position:fixed;left:0;right:0;bottom:0;height:72px;background:rgba(15,15,26,.97);border-top:1px solid var(--line);grid-template-columns:repeat(6,1fr);align-items:center;z-index:30}
  #tabbar button{display:flex;flex-direction:column;align-items:center;gap:5px;font:700 8px Inter;letter-spacing:1px;text-transform:uppercase;color:var(--tx3);background:none;border:0;padding:8px 0;min-height:48px}
@@ -335,6 +350,8 @@ tbody tr{cursor:pointer}tbody tr:hover td{background:var(--hover-soft)}
 /* pie del bloque de Manychat */
 .mcpie{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
 .mcemb{margin-left:auto;display:flex;gap:14px;flex-wrap:wrap}
+/* La nota del pie puede ser larga; .meta va en nowrap por defecto. */
+.mcpie .meta{white-space:normal}
 .tr.mini i{display:block;height:100%;background:var(--crimson);border-radius:3px;transition:width .4s}
 .who{display:flex;align-items:center;gap:6px}
 .av.xs{width:18px;height:18px;font-size:7.5px}
@@ -472,7 +489,11 @@ button,.row,.trend,.cl,.gcard,.tk,.idea{touch-action:manipulation}
 @media(pointer:coarse){
  .close,#sideToggle,#logout,.btn.sm{min-width:44px;min-height:44px}
  #tabbar button{min-height:56px}
- .chip{min-height:40px}
+ .chip{min-height:44px}
+ /* Los segmentos (7/30/90 dias, tabla/galeria) median 23px de alto:
+    por debajo del minimo comodo para el pulgar. */
+ .seg button{min-height:44px}
+ .seg.sm button{min-height:44px;font-size:10px}
 }
 
 /* ---- 5. Superficies que son fotografía ------------------------
@@ -627,6 +648,9 @@ button,.row,.trend,.cl,.gcard,.tk,.idea{touch-action:manipulation}
 .vacio.mini{min-height:0;padding:16px 18px 16px 24px}
 .vacio.mini .txt{max-width:none}
 @media(max-width:480px){
+ .hero .in{max-width:72%}
+ .heroacts{width:100%}
+ .heroacts .btn{flex:1 1 130px}
  .vacio{min-height:160px;padding:20px 16px 20px 24px}
  .vacio .txt{max-width:calc(100% - 92px)}
  .vacio img{right:-14px;height:112%}

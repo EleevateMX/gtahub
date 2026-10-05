@@ -64,10 +64,10 @@ const CUENTAS={};
 const BRIEFS={};
 
 const HEROES={
- inicio:{bg:'hub-art/bg-inicio.jpg',char:'hub-art/char-business.png',h:'PANEL DEL EQUIPO',p:''},
- pendientes:{bg:'hub-art/bg-pendientes.jpg',char:'hub-art/char-bluesuit.png',h:'FLUJO DE TRABAJO',p:''},
- publicaciones:{bg:'hub-art/bg-publicaciones.jpg',char:'hub-art/char-varsity.png',h:'BIBLIOTECA DE PUBLICACIONES',p:''},
- calendario:{bg:'hub-art/bg-calendario.jpg',char:'hub-art/char-redsuit.png',h:'AGENDA DEL HUB',p:''},
- ideas:{bg:'hub-art/bg-ideas.jpg',char:'hub-art/char-business.png',h:'BANCO DE IDEAS',p:''},
- metricas:{bg:'hub-art/bg-metricas.jpg',char:'hub-art/char-bluesuit.png',h:'RENDIMIENTO',p:''},
- brief:{bg:'hub-art/bg-ideas.jpg',char:'hub-art/char-woman.png',h:'BRIEF DE MARCA',p:''}};
+ inicio:{bg:'hub-art/bg-inicio.webp',char:'hub-art/char-business.webp',h:'PANEL DEL EQUIPO',p:''},
+ pendientes:{bg:'hub-art/bg-pendientes.webp',char:'hub-art/char-bluesuit.webp',h:'FLUJO DE TRABAJO',p:''},
+ publicaciones:{bg:'hub-art/bg-publicaciones.webp',char:'hub-art/char-varsity.webp',h:'BIBLIOTECA DE PUBLICACIONES',p:''},
+ calendario:{bg:'hub-art/bg-calendario.webp',char:'hub-art/char-redsuit.webp',h:'AGENDA DEL HUB',p:''},
+ ideas:{bg:'hub-art/bg-ideas.webp',char:'hub-art/char-business.webp',h:'BANCO DE IDEAS',p:''},
+ metricas:{bg:'hub-art/bg-metricas.webp',char:'hub-art/char-bluesuit.webp',h:'RENDIMIENTO',p:''},
+ brief:{bg:'hub-art/bg-ideas.webp',char:'hub-art/char-woman.webp',h:'BRIEF DE MARCA',p:''}};

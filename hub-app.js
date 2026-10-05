@@ -202,7 +202,7 @@ const ESTADOS_VACIOS={
  top:{cod:'SIN RANKING',h:'NADIE EN EL PODIO',char:'char-woman'}};
 function emptyState(m,clave='filtros'){
  const e=ESTADOS_VACIOS[clave]||ESTADOS_VACIOS.filtros;
- return `<div class="empty vacio"><span class="hud tl"></span><span class="hud br"></span><div class="txt"><div class="cod"><i></i>${e.cod}</div><h4>${e.h}</h4><p>${m}</p>${e.accion?`<button class="btn gh2 sm" type="button" ${e.accion[1]}>${e.accion[0]}</button>`:''}</div><img src="hub-art/${e.char}.png" alt="" decoding="async" loading="lazy"></div>`;
+ return `<div class="empty vacio"><span class="hud tl"></span><span class="hud br"></span><div class="txt"><div class="cod"><i></i>${e.cod}</div><h4>${e.h}</h4><p>${m}</p>${e.accion?`<button class="btn gh2 sm" type="button" ${e.accion[1]}>${e.accion[0]}</button>`:''}</div><img src="hub-art/${e.char}.webp" alt="" decoding="async" loading="lazy"></div>`;
 }
 /* Variante compacta para listas y buscadores, donde un personaje no cabe. */
 const emptyMini=(cod,m)=>`<div class="empty vacio mini"><div class="txt"><div class="cod"><i></i>${cod}</div><p>${m}</p></div></div>`;

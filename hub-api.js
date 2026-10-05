@@ -20,7 +20,7 @@ const marcaParaDB=id=>HUB.migrado?id:(id==='ENG'?'PE':id);
 const marcaEscribible=id=>HUB.migrado||id!=='BR';
 const PF_DB={instagram:'ig',tiktok:'tt',discord:'dc',email:'em',facebook:'fb',multi:'dc'};
 const DB_PF={ig:'instagram',tt:'tiktok',dc:'discord',em:'email',fb:'facebook'};
-const THUMB_PF={ig:'hub-art/t-acceso.jpg',tt:'hub-art/t-atraco.jpg',dc:'hub-art/t-drop.jpg',em:'hub-art/t-newsletter.jpg',fb:'hub-art/t-jornada.jpg'};
+const THUMB_PF={ig:'hub-art/t-acceso.webp',tt:'hub-art/t-atraco.webp',dc:'hub-art/t-drop.webp',em:'hub-art/t-newsletter.webp',fb:'hub-art/t-jornada.webp'};
 const ST_DB={publicado:'publicada',programado:'programada',pendiente:'borrador',borrador:'borrador'};
 const DB_ST={publicada:'publicado',programada:'programado',borrador:'borrador'};
 

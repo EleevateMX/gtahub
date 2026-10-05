@@ -13,7 +13,7 @@
  * Al publicar cambios en el shell, sube VERSION: 'activate' borra las
  * cachés que no coincidan, incluida la 'gtahub-v2' del hub viejo.
  */
-const VERSION = '2026-10-05.3';
+const VERSION = '2026-10-05.4';
 const CACHE = 'gtahub-hub-' + VERSION;
 
 /* Lo mínimo para abrir sin red: shell, estilos, scripts, logo y el arte
@@ -31,8 +31,8 @@ const SHELL = [
   'icon-512.png',
   'icon-maskable-512.png',
   'favicon-32.png',
-  'hub-art/bg-inicio.jpg',
-  'hub-art/char-business.png'
+  'hub-art/bg-inicio.webp',
+  'hub-art/char-business.webp'
 ];
 
 /* skipWaiting: hay navegadores del equipo con el SW de retiro todavía

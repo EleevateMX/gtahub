@@ -41,6 +41,10 @@ const POSTS=[];
 const TASKS=[];
 const IDEAS=[];
 const TRENDS=[];
+/* Cortes del flujo de Manychat, mas reciente primero. Lo llena
+   supabase/manychat.sql; si la tabla no existe, queda vacio y Metricas
+   simplemente no pinta el bloque. */
+const MANYCHAT=[];
 /* Cuentas de cada marca en cada red: {ESP:{ig:{cuenta,url}},…}. Lo llena
    hubLoad desde gtahub_cuentas; queda vacío si la migración no ha corrido. */
 const CUENTAS={};

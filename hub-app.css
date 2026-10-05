@@ -332,6 +332,9 @@ tbody tr{cursor:pointer}tbody tr:hover td{background:var(--hover-soft)}
 .drop{display:flex;flex-direction:column;gap:10px;min-height:60px;border-radius:9px;transition:background .15s,box-shadow .15s}
 .drop.over{background:rgba(var(--crimson-rgb),.07);box-shadow:inset 0 0 0 1px rgba(var(--crimson-rgb),.45)}
 .tr.mini{height:5px;background:var(--track);border-radius:3px;overflow:hidden}
+/* pie del bloque de Manychat */
+.mcpie{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.mcemb{margin-left:auto;display:flex;gap:14px;flex-wrap:wrap}
 .tr.mini i{display:block;height:100%;background:var(--crimson);border-radius:3px;transition:width .4s}
 .who{display:flex;align-items:center;gap:6px}
 .av.xs{width:18px;height:18px;font-size:7.5px}

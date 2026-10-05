@@ -93,6 +93,14 @@ function mapPost(r){
   copy:r.copy_text||r.notes||'',chk:Array.isArray(r.chk)?r.chk:[],
   chkState:Array.isArray(r.chk_state)?r.chk_state:(Array.isArray(r.chk)?r.chk.map(()=>false):[])};
 }
+function mapCorte(r){
+ return{corte:r.corte||'',flujo:r.flujo||'Nuevos Usuarios',brand:normMarca(r.brand),
+  envios:+r.envios||0,contactos:+r.contactos||0,bandeja:+r.bandeja||0,
+  correos:+r.correos||0,telefonos:+r.telefonos||0,
+  entregado:r.entregado==null?null:+r.entregado,
+  abierto:r.abierto==null?null:+r.abierto,
+  clic:r.clic==null?null:+r.clic,nota:r.nota||''};
+}
 function mapTask(r){
  return{id:r.id,t:r.title,col:r.col,prio:r.prio,brand:normMarca(r.brand),srv:r.srv||servidoresDe(r.brand)[0],
   pf:r.platform?(PF_DB[r.platform]||null):null,dueDate:r.due_date||'',owner:r.owner||'—',
@@ -107,7 +115,7 @@ function mapTrend(r){
  return{id:r.id,t:r.title,rel:r.relevance||'media',note:r.insight||'',src:r.source_url||'',d:(r.created_at||'').slice(0,10)};
 }
 async function hubLoad(){
- const[pubs,tasks,ideas,trends,metas,cuentas,briefs]=await Promise.all([
+ const[pubs,tasks,ideas,trends,metas,cuentas,briefs,manychat]=await Promise.all([
   api('gtahub_publicaciones?select=*&order=publish_date.desc.nullslast&limit=500'),
   api('gtahub_tareas?select=*&order=created_at.asc&limit=300'),
   api('gtahub_ideas?select=*&order=created_at.desc&limit=300'),
@@ -115,10 +123,12 @@ async function hubLoad(){
   api('gtahub_metas?select=*'),
   apiOpc('gtahub_cuentas?select=*'),
   apiOpc('gtahub_briefs?select=*'),
+  apiOpc('gtahub_manychat?select=*&order=corte.desc&limit=60'),
  ]);
  /* Que gtahub_cuentas responda es la señal de que la migración de marcas
     ya corrió; de eso dependen BR y el valor que se escribe en brand. */
  HUB.migrado=Array.isArray(cuentas);
+ MANYCHAT.length=0;(manychat||[]).forEach(r=>MANYCHAT.push(mapCorte(r)));
  POSTS.length=0;pubs.forEach(r=>POSTS.push(mapPost(r)));
  TASKS.length=0;tasks.forEach(r=>TASKS.push(mapTask(r)));
  IDEAS.length=0;ideas.filter(r=>r.status!=='descartada'&&r.status!=='convertida').forEach(r=>IDEAS.push(mapIdea(r)));

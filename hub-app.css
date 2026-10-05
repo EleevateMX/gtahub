@@ -404,7 +404,13 @@ tbody tr{cursor:pointer}tbody tr:hover td{background:var(--hover-soft)}
 .prev{position:relative}
 .previewwrap{position:relative;border-radius:10px;overflow:hidden}
 .kpi:after{content:"";position:absolute;right:-14px;top:-14px;width:56px;height:56px;background:repeating-linear-gradient(135deg,rgba(var(--crimson-rgb),.18) 0 3px,transparent 3px 7px);transform:rotate(0deg)}
-.top{position:relative;overflow:hidden}
+/* La barra superior NO lleva overflow:hidden. Lo tuvo, y recortaba el panel
+   de avisos: el panel cuelga a 44px dentro de una barra de 62, asi que solo
+   se veian los ultimos 18px y en escritorio parecia que el boton no hacia
+   nada. En movil nunca se noto porque ahi el panel es position:fixed y se
+   escapa del recorte. La franja diagonal de abajo vive dentro de la caja
+   (right/top/bottom en 0, 120px de ancho), asi que no necesita recorte. */
+.top{position:relative}
 .top:after{content:"";position:absolute;right:0;top:0;bottom:0;width:120px;pointer-events:none;background:repeating-linear-gradient(135deg,rgba(var(--crimson-rgb),.07) 0 6px,transparent 6px 14px)}
 .lhead .in,#boot .in{position:relative;z-index:2}
 #boot:before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(0deg,rgba(255,255,255,.02) 0 1px,transparent 1px 32px),repeating-linear-gradient(90deg,rgba(255,255,255,.02) 0 1px,transparent 1px 32px);pointer-events:none}

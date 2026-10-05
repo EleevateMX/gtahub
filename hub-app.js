@@ -450,8 +450,46 @@ const OPT=(o,sel)=>o.map(([v,n])=>`<option value="${v}"${v===sel?' selected':''}
 const PF_OPTS=[['ig','Instagram'],['tt','TikTok'],['dc','Discord'],['em','Email'],['fb','Facebook']];
 /* Pares marca·servidor: MARCA_SRV se arma solo desde el catálogo. */
 const BR_OPTS=MARCA_SRV;
-function frm(fields){return fields.map(f=>`<div class="fld"><label class="lbl" for="f_${f.id}">${f.l}</label>${f.tag==='select'?`<select id="f_${f.id}">${f.opts}</select>`:f.tag==='textarea'?`<textarea id="f_${f.id}" rows="${f.rows||3}" placeholder="${f.ph||''}"></textarea>`:`<input id="f_${f.id}" type="${f.type||'text'}" value="${f.v||''}" placeholder="${f.ph||''}">`}</div>`).join('')}
+/* `vf` en vez de f.v||'': el 0 es un valor (progreso 0%), y con || se perdia. */
+const vf=f=>f.v==null||f.v===''?'':esc(f.v);
+function frm(fields){return fields.map(f=>`<div class="fld"><label class="lbl" for="f_${f.id}">${f.l}</label>${f.tag==='select'?`<select id="f_${f.id}">${f.opts}</select>`:f.tag==='textarea'?`<textarea id="f_${f.id}" rows="${f.rows||3}" placeholder="${f.ph||''}">${vf(f)}</textarea>`:`<input id="f_${f.id}" type="${f.type||'text'}" value="${vf(f)}" placeholder="${f.ph||''}">`}</div>`).join('')}
 const fv=id=>{const e=$('#f_'+id);return e?e.value.trim():''};
+/* marcaEscribible() existia pero nadie la llamaba: una alta en BR antes de
+   la migracion fallaba contra el CHECK de la base y el equipo solo veia
+   «No se pudo guardar». Ahora el formulario lo dice y dice que correr. */
+const avisoBR='BR todavía no se puede guardar: corre supabase/marcas-brief.sql.';
+/* Editar una tarea que ya existe.
+   El kanban dejaba cambiar estado y progreso, pero no el titulo, la fecha,
+   el responsable ni la descripcion: para corregir una palabra habia que
+   borrar la tarjeta y volver a crearla. */
+const COL_OPTS=[['todo','Por hacer'],['prog','En progreso'],['done','Listo']];
+function editarTarea(id){
+ const t=TASKS.find(x=>x.id===id);if(!t)return;
+ const volver=()=>openTask(id);
+ const sel=normMarca(t.brand)+'|'+(t.srv||servidoresDe(t.brand)[0]);
+ drawer('Editar tarea',frm([
+  {id:'t',l:'TAREA',v:t.t,ph:'Qué hay que hacer'},
+  {id:'prio',l:'PRIORIDAD',tag:'select',opts:OPT([['alta','Alta'],['media','Media'],['baja','Baja']],t.prio)},
+  {id:'col',l:'ESTADO',tag:'select',opts:OPT(COL_OPTS,t.col)},
+  {id:'br',l:'MARCA · SERVIDOR',tag:'select',opts:OPT(BR_OPTS,sel)},
+  {id:'pf',l:'PLATAFORMA (OPCIONAL)',tag:'select',opts:'<option value="">—</option>'+OPT(PF_OPTS,t.pf)},
+  {id:'d',l:'FECHA LÍMITE',type:'date',v:t.dueDate},
+  {id:'ow',l:'RESPONSABLE',v:t.owner==='—'?'':t.owner},
+  {id:'prog',l:'PROGRESO (0-100)',type:'number',v:t.prog},
+  {id:'ds',l:'DESCRIPCIÓN',tag:'textarea',rows:4,v:t.desc},
+ ]),`<button class="btn gh2" id="eBack">Volver</button><button class="btn" style="flex:1" id="eSave">Guardar cambios</button>`);
+ $('#eBack').onclick=volver;
+ $('#eSave').onclick=async()=>{
+  if(!fv('t'))return toast('La tarea necesita un título.');
+  const[b,sv]=fv('br').split('|');
+  if(!marcaEscribible(b))return toast(avisoBR);
+  const prog=Math.max(0,Math.min(100,parseInt(fv('prog')||'0',10)));
+  await persist(()=>dbPatchTask(t.id,{title:fv('t'),prio:fv('prio'),col:fv('col'),
+   brand:marcaParaDB(b),srv:sv,platform:fv('pf')?DB_PF[fv('pf')]:null,
+   due_date:fv('d')||null,owner:fv('ow')||'—',prog,descr:fv('ds')||null}),'Tarea actualizada');
+  volver();
+ };
+}
 function newForm(kind,presetDate){
  if(kind==='informe'){exportCSV();return}
  if(kind==='campaña'){toast('Usa «Crear idea» dentro de una tendencia.');return}
@@ -470,6 +508,7 @@ function newForm(kind,presetDate){
    {id:'chk',l:'CHECKLIST (UNA POR LÍNEA)',tag:'textarea',rows:3,ph:'Arte exportado\nCopy revisado\nProgramada'},
   ]),`<button class="btn" style="flex:1" id="fSave">Guardar publicación</button>`,true);
   $('#fSave').onclick=()=>{if(!fv('t'))return toast('Ponle un título.');const[b,s]=fv('br').split('|');
+   if(!marcaEscribible(b))return toast(avisoBR);
    persist(()=>dbCreatePost({t:fv('t'),brand:b,srv:s,pf:fv('pf'),st:fv('st'),d:fv('d'),h:fv('h'),fmt:fv('fmt'),copy:fv('copy'),chk:fv('chk')?fv('chk').split('\n').map(x=>x.trim()).filter(Boolean):[]}),'Publicación creada');closeDrawer()};
  }else if(kind==='tarea'){
   drawer('Nueva tarea',frm([
@@ -482,6 +521,7 @@ function newForm(kind,presetDate){
    {id:'ds',l:'DESCRIPCIÓN',tag:'textarea',rows:3},
   ]),`<button class="btn" style="flex:1" id="fSave">Guardar tarea</button>`,true);
   $('#fSave').onclick=()=>{if(!fv('t'))return toast('Describe la tarea.');const[b,s]=fv('br').split('|');
+   if(!marcaEscribible(b))return toast(avisoBR);
    persist(()=>dbCreateTask({t:fv('t'),prio:fv('prio'),brand:b,srv:s,pf:fv('pf')||null,dueDate:fv('d'),owner:fv('ow'),desc:fv('ds')}),'Tarea creada');closeDrawer()};
  }else if(kind==='idea'){
   drawer('Nueva idea',frm([
@@ -494,6 +534,7 @@ function newForm(kind,presetDate){
    {id:'why',l:'POR QUÉ AHORA',tag:'textarea',rows:2},
   ]),`<button class="btn" style="flex:1" id="fSave">Guardar idea</button>`,true);
   $('#fSave').onclick=()=>{if(!fv('t'))return toast('Ponle un título.');const[b]=fv('br').split('|');
+   if(!marcaEscribible(b))return toast(avisoBR);
    persist(()=>dbCreateIdea({t:fv('t'),brand:b,pf:fv('pf'),imp:+fv('imp'),eff:+fv('eff'),d:fv('ds'),why:fv('why')}),'Idea guardada');closeDrawer()};
  }
 }
@@ -595,14 +636,12 @@ function openTask(id){const t=TASKS.find(x=>x.id===id);if(!t)return;const di=due
  <dl class="kv"><dt>Estado</dt><dd>${({todo:'Por hacer',prog:'En progreso',done:'Listo'})[t.col]}</dd><dt>Responsable</dt><dd>${t.owner}</dd><dt>Entrega</dt><dd${di.late?' style="color:var(--bad)"':''}>${di.label}</dd></dl>
  <div><div class="lbl" style="margin-bottom:8px">PROGRESO · ${t.prog}%</div><div class="tr mini"><i style="width:${t.prog}%"></i></div></div>
  ${bloqueRefs('tarea',t.id)}`,
- `<button class="btn gh2" id="tProg">Progreso…</button>${t.col!=='done'?`<button class="btn" style="flex:1" id="tNext">Avanzar estado</button>`:`<button class="btn gh2" style="flex:1" id="tBack">Reabrir</button>`}<button class="btn gh2" id="tDel" title="Eliminar">✕</button>`);
+ `<button class="btn gh2" id="tEdit">Editar</button>${t.col!=='done'?`<button class="btn" style="flex:1" id="tNext">Avanzar estado</button>`:`<button class="btn gh2" style="flex:1" id="tBack">Reabrir</button>`}<button class="btn gh2" id="tDel" title="Eliminar">✕</button>`);
  setTimeout(()=>{
   const n=$('#tNext');if(n)n.onclick=()=>{const to=t.col==='todo'?'prog':'done';
    persist(()=>dbPatchTask(t.id,{col:to,prog:to==='done'?100:Math.max(t.prog,25)}),'Tarea → '+(to==='done'?'Listo':'En progreso'));closeDrawer()};
   const b=$('#tBack');if(b)b.onclick=()=>{persist(()=>dbPatchTask(t.id,{col:'prog',prog:50}),'Tarea reabierta');closeDrawer()};
-  const pr=$('#tProg');if(pr)pr.onclick=()=>{const v=prompt('Progreso (0-100):',t.prog);if(v===null)return;
-   const n2=Math.max(0,Math.min(100,parseInt(v||'0',10)));
-   persist(()=>dbPatchTask(t.id,{prog:n2,col:n2===100?'done':n2>0?'prog':t.col==='done'?'prog':t.col}),'Progreso actualizado');closeDrawer()};
+  const ed=$('#tEdit');if(ed)ed.onclick=()=>editarTarea(t.id);
   const del=$('#tDel');if(del)del.onclick=()=>{if(!confirm('¿Eliminar esta tarea?'))return;
    persist(async()=>{await dbDeleteRefsDe('tarea',t.id);await dbDeleteTask(t.id)},'Tarea eliminada');closeDrawer()};
   wireRefs('tarea',t.id,()=>openTask(t.id));

@@ -157,6 +157,10 @@ PostgREST desde `hub-api.js`. Tablas:
   la migración no se ha corrido. NUNCA guardar contraseñas en claro. El login
   acepta usuario o correo (se toma la parte antes de la @).
 
+`supabase/revision.sql` no cambia nada: reporta, archivo por archivo, qué
+migración ya corrió y cuál falta. Es el primer sitio al que ir cuando el hub
+muestra un aviso de migración.
+
 Archivos `migracion-v4.sql` y `seed-v4.sql` (en el histórico del proyecto) crearon
 este esquema. RLS: abierto vía anon para tablas de contenido (herramienta interna);
 `gtahub_usuarios` cerrada, solo accesible por `hub_login`.

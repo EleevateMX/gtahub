@@ -262,6 +262,49 @@ async function dbGuardarCuenta(marcaId,pf,handle,url){
   body:JSON.stringify({brand:marcaParaDB(marcaId),platform:DB_PF[pf],handle:handle||null,url:url||null})});
 }
 
+/* ---------- DATOS QUE ANTES SOLO SE TOCABAN POR SQL ----------
+   Metas, cortes de Manychat y cortes de cuenta se cargaban con un archivo
+   .sql cada semana. Son numeros que el equipo copia de una pantalla: no
+   tienen por que pasar por el editor de la base.
+
+   Todas usan merge-duplicates contra la misma clave unica que declara su
+   migracion, asi que guardar dos veces el mismo corte lo actualiza en vez
+   de duplicarlo. */
+const MERGE=Object.assign({},SB_H,{Prefer:'resolution=merge-duplicates,return=representation'});
+
+async function dbGuardarMetas(metas){
+ const filas=Object.entries(metas)
+  .filter(([k])=>DB_PF[k])
+  .map(([k,v])=>({platform:DB_PF[k],weekly_goal:Math.max(0,parseInt(v,10)||0)}));
+ if(!filas.length)return null;
+ return api('gtahub_metas?on_conflict=platform',
+  {method:'POST',headers:MERGE,body:JSON.stringify(filas)});
+}
+
+/* Un corte del flujo de Manychat. Los porcentajes pueden ir vacios: null es
+   «no aplica», que no es lo mismo que cero. */
+const pct=v=>{const n=parseFloat(String(v).replace(',','.'));return isNaN(n)?null:n};
+const ent=v=>Math.max(0,parseInt(v,10)||0);
+async function dbGuardarCorteMC(c){
+ return api('gtahub_manychat?on_conflict=corte,flujo,brand',{method:'POST',headers:MERGE,
+  body:JSON.stringify({corte:c.corte,flujo:c.flujo||'Nuevos Usuarios',
+   brand:marcaParaDB(c.brand||'ESP'),envios:ent(c.envios),contactos:ent(c.contactos),
+   bandeja:ent(c.bandeja),correos:ent(c.correos),telefonos:ent(c.telefonos),
+   entregado:pct(c.entregado),abierto:pct(c.abierto),clic:pct(c.clic),
+   nota:c.nota||null})});
+}
+
+/* Un corte de las estadisticas de la cuenta (no de una pieza). */
+async function dbGuardarCorteCuenta(c){
+ return api('gtahub_cuenta?on_conflict=corte,plataforma,brand',{method:'POST',headers:MERGE,
+  body:JSON.stringify({corte:c.corte,plataforma:c.plataforma||'instagram',
+   brand:marcaParaDB(c.brand||'ESP'),periodo_dias:ent(c.dias)||30,
+   reproducciones:ent(c.repro),espectadores:ent(c.espect),
+   seguidores_netos:parseInt(c.segNetos,10)||0,interacciones:ent(c.inter),
+   historias:ent(c.historias),reels:ent(c.reels),publicaciones:ent(c.posts),
+   en_vivo:ent(c.envivo),nota:c.nota||null})});
+}
+
 /* ---------- HELPERS DE FECHA ---------- */
 const todayISO=()=>{const t=new Date();return t.getFullYear()+'-'+String(t.getMonth()+1).padStart(2,'0')+'-'+String(t.getDate()).padStart(2,'0')};
 const MESES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];

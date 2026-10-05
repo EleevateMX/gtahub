@@ -148,7 +148,8 @@ PostgREST desde `hub-api.js`. Tablas:
   `gtahub-media` de Storage; también se acepta pegar una URL. Lo crea
   `supabase/referencias.sql`; mientras no corra, `HUB.refs` es falso y la ficha
   muestra el aviso en vez de una galería vacía.
-- `gtahub_metas`: platform (pk), weekly_goal — metas de cadencia semanal.
+- `gtahub_metas`: platform (pk), weekly_goal — metas de cadencia semanal. Se
+  editan desde Inicio, en el encabezado de «Cadencia semanal».
 - `gtahub_usuarios`: username (pk), display_name, role, salt, pass_hash.
   Login: la función `hub_login(p_usuario, p_password)` compara
   sha256(salt || ':' || password) **dentro de Postgres** y devuelve solo
@@ -172,6 +173,22 @@ Pendiente de fondo: el hash es SHA-256 de una pasada, sin estiramiento. Si se
 filtrara un respaldo de la base, las contraseñas caerían rápido. Lo sólido es
 bcrypt (pgcrypto: `crypt`/`gen_salt`) o Supabase Auth; cualquiera de los dos
 obliga al equipo a fijar su contraseña una vez.
+
+## Qué se edita desde el hub y qué sigue pidiendo SQL
+
+Todo lo que el equipo actualiza cada semana se escribe desde la interfaz, con
+`merge-duplicates` contra la clave única de cada tabla: guardar dos veces el
+mismo corte lo actualiza, no lo duplica.
+
+- Metas de cadencia → Inicio, encabezado de «Cadencia semanal».
+- Cortes de Manychat y de cuenta → Métricas, botón «+ Nuevo corte» de cada
+  sub-pestaña.
+- Cuentas por red → Brief, botón «EDITAR» junto a CUENTAS (rol `mkt`).
+
+Sigue siendo SQL: el detalle paso a paso del recorrido de Manychat
+(`gtahub_manychat_pasos` y `gtahub_manychat_botones`), porque son 23 filas que
+se cargan de golpe y no se tocan a mano, y las tendencias, que las escribe
+Claude los lunes.
 
 ## Convenciones
 

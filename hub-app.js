@@ -182,7 +182,7 @@ function vInicio(){
  <div class="card"><header><h3>PENDIENTES URGENTES</h3><span class="tag alta">${urg.length}</span></header>
  ${urg.map(t=>{const di=dueInfo(t);return `<div class="row" data-task="${t.id}"><span class="prio ${t.prio}"></span><div class="t">${t.t}<div class="meta" style="margin-top:3px"${di.late?' style="color:var(--bad)"':''}>${di.label} · ${t.owner}</div></div><span class="tag ${t.prio}">${t.prio.toUpperCase()}</span></div>`}).join('')||emptyState('Ninguna tarea vence pronto ni está fuera de plazo.','urgentes')}</div></div>
  <div class="g2">
- <div class="card"><header><h3>CADENCIA SEMANAL · PUBLICADAS VS. META</h3><span class="lbl">ESTA SEMANA</span></header>
+ <div class="card"><header><h3>CADENCIA SEMANAL · PUBLICADAS VS. META</h3><button class="chip" data-metas="1">EDITAR METAS</button></header>
  ${cad.map(([p,a,b])=>`<div class="meter"><div class="lg">${pill(p)}<span><b style="color:var(--tx)">${a}</b> / ${b}</span></div><div class="tr"><i style="width:${Math.min(100,a/b*100)}%;background:var(--${p})"></i></div></div>`).join('')}</div>
  <div class="card"><header><h3>ÚLTIMAS TENDENCIAS</h3><button class="chip" data-goto="ideas">EXPLORAR</button></header>
  ${TRENDS.slice(0,5).map(trendRow).join('')||emptyState('El radar de los lunes todavía no carga tendencias.','tendencias')}</div></div>`;
@@ -338,7 +338,7 @@ function cuentaBloque(){
    aviso, nunca una tabla inventada. */
 function panelManychat(){
  const cs=byBrand(MANYCHAT), lista=cs.length?cs:MANYCHAT;
- if(!lista.length) return emptyState('Corre supabase/manychat.sql para traer los cortes del flujo.','grafica');
+ if(!lista.length) return emptyState('Todavía no hay cortes del flujo. Carga el primero con «+ Nuevo corte».','grafica');
  const hoy=lista[0],ayer=lista[1]||null;
  const porC=c=>c&&c.contactos?(c.envios/c.contactos).toFixed(2):'—';
 
@@ -384,26 +384,6 @@ function panelManychat(){
      <div class="tr"><i style="width:${Math.max(3,(b.ctr||0))}%;background:var(--crimson)"></i></div></div>`).join('')}</div>`).join('')}
   </div>`:''}`;
 }
-function mcBloque(){
- if(!MANYCHAT.length)return'';
- const cs=byBrand(MANYCHAT);
- const lista=(cs.length?cs:MANYCHAT);
- const hoy=lista[0],ayer=lista[1]||null;
- const max=Math.max(1,hoy.envios,hoy.contactos,hoy.bandeja,ayer?ayer.envios:0,ayer?ayer.contactos:0,ayer?ayer.bandeja:0);
- const porC=(c)=>c&&c.contactos?(c.envios/c.contactos).toFixed(2):'—';
- const emb=[['ENTREGADO',hoy.entregado],['ABIERTO',hoy.abierto],['CLIC',hoy.clic]].filter(x=>x[1]!=null);
- return `<div class="card" style="margin-top:15px"><header><h3>MANYCHAT · ${hoy.flujo.toUpperCase()}</h3>
-  <span class="lbl">CORTE ${dlabel(hoy.corte)}${ayer?' · ANTES '+dlabel(ayer.corte):''}</span></header>
-  <div class="g3 gmet">
-   ${mcFila('CONTACTOS ÚNICOS',hoy.contactos,ayer?ayer.contactos:null,max)}
-   ${mcFila('ENVÍOS DEL FLUJO',hoy.envios,ayer?ayer.envios:null,max)}
-   ${mcFila('BANDEJA DE ENTRADA',hoy.bandeja,ayer?ayer.bandeja:null,max)}
-  </div>
-  <div class="mcpie">
-   <span class="meta">Envíos por contacto <b style="color:var(--tx)">${porC(hoy)}</b>${ayer?` · antes ${porC(ayer)}`:''}</span>
-   ${emb.length?`<span class="mcemb">${emb.map(([l,v])=>`<span class="lbl">${l} <b style="color:var(--tx)">${v}%</b></span>`).join('')}</span>`:''}
-  </div></div>`;
-}
 function metContenido(){
  const ps=periodPosts(period),prev=byBrand(POSTS).filter(p=>p.st==='publicada'&&p.d&&p.d>=daysAgoISO(+period*2)&&p.d<daysAgoISO(+period));
  const reach=ps.reduce((a,p)=>a+p.reach,0),eng=ps.reduce((a,p)=>a+p.eng,0);
@@ -438,9 +418,13 @@ function metContenido(){
    porque una octava pestana en la barra movil deja etiquetas de 6px. */
 const MET_SUBS=[['contenido','CONTENIDO'],['cuenta','CUENTA'],['manychat','MANYCHAT']];
 function vMet(){
- const barra=`<div class="seg sm metsub">${MET_SUBS.map(([k,l])=>
-   `<button class="${metSub===k?'act':''}" data-sub="${k}">${l}</button>`).join('')}</div>`;
- const panel=metSub==='cuenta'?(cuentaBloque()||emptyState('Corre supabase/cuenta.sql para ver los cortes de la cuenta.','grafica'))
+ /* Cada sub-pestaña con cortes trae su botón para cargar uno nuevo, al lado
+    del selector: es el gesto que antes obligaba a abrir el SQL Editor. */
+ const nuevo=metSub==='cuenta'?'<button class="btn sm" data-corte-ig="1">+ Nuevo corte</button>'
+   :metSub==='manychat'?'<button class="btn sm" data-corte-mc="1">+ Nuevo corte</button>':'';
+ const barra=`<div class="metbar"><div class="seg sm metsub">${MET_SUBS.map(([k,l])=>
+   `<button class="${metSub===k?'act':''}" data-sub="${k}">${l}</button>`).join('')}</div>${nuevo}</div>`;
+ const panel=metSub==='cuenta'?(cuentaBloque()||emptyState('Todavía no hay cortes de la cuenta. Carga el primero con «+ Nuevo corte».','grafica'))
    :metSub==='manychat'?panelManychat()
    :metContenido();
  return hero()+barra+panel;
@@ -463,6 +447,109 @@ const avisoBR='BR todavía no se puede guardar: corre supabase/marcas-brief.sql.
    el responsable ni la descripcion: para corregir una palabra habia que
    borrar la tarjeta y volver a crearla. */
 const COL_OPTS=[['todo','Por hacer'],['prog','En progreso'],['done','Listo']];
+
+/* ---------- LO QUE ANTES PEDÍA ABRIR EL SQL EDITOR ----------
+   Metas, cortes de Manychat, cortes de cuenta y las cuentas por red eran
+   números que el equipo copia de una pantalla y alguien tenía que meter a
+   mano con un archivo .sql cada semana. Ahora se escriben desde el hub.
+   La base no cambia: son las mismas tablas y las mismas claves únicas, así
+   que guardar dos veces el mismo corte lo actualiza en vez de duplicarlo. */
+function editarMetas(){
+ drawer('Metas de cadencia semanal',
+  `<p class="refnota">Cuántas piezas quieres publicar por semana en cada red. Es la barra de «Cadencia semanal» de Inicio.</p>`+
+  frm(Object.keys(PF).map(k=>({id:'m_'+k,l:PF[k].n.toUpperCase(),type:'number',v:HUB.metas[k]}))),
+  `<button class="btn gh2" id="eBack">Volver</button><button class="btn" style="flex:1" id="eSave">Guardar metas</button>`);
+ $('#eBack').onclick=()=>{closeDrawer();render()};
+ $('#eSave').onclick=async()=>{
+  const metas={};Object.keys(PF).forEach(k=>{metas[k]=fv('m_'+k)});
+  await persist(()=>dbGuardarMetas(metas),'Metas actualizadas');
+  closeDrawer();
+ };
+}
+
+/* El corte más reciente se usa para pre-llenar: casi siempre el nuevo se
+   parece al anterior y así solo se corrigen los números que cambiaron. */
+function nuevoCorteMC(){
+ const u=MANYCHAT[0]||{};
+ drawer('Nuevo corte de Manychat',
+  `<p class="refnota">Los números del flujo tal como los reporta Manychat. Si guardas una fecha que ya existe, se actualiza en vez de duplicarse.</p>`+
+  frm([
+   {id:'c',l:'FECHA DEL CORTE',type:'date',v:todayISO()},
+   {id:'fl',l:'FLUJO',v:u.flujo||'Nuevos Usuarios'},
+   {id:'br',l:'MARCA · SERVIDOR',tag:'select',opts:OPT(BR_OPTS,(u.brand||'ESP')+'|'+servidoresDe(u.brand||'ESP')[0])},
+   {id:'en',l:'ENVÍOS',type:'number',v:u.envios},
+   {id:'co',l:'CONTACTOS',type:'number',v:u.contactos},
+   {id:'ba',l:'EN BANDEJA',type:'number',v:u.bandeja},
+   {id:'cr',l:'CORREOS',type:'number',v:u.correos},
+   {id:'te',l:'TELÉFONOS',type:'number',v:u.telefonos},
+   {id:'eg',l:'ENTREGADO %  ·  VACÍO = NO APLICA',v:u.entregado==null?'':u.entregado},
+   {id:'ab',l:'ABIERTO %  ·  VACÍO = NO APLICA',v:u.abierto==null?'':u.abierto},
+   {id:'cl',l:'CLIC %  ·  VACÍO = NO APLICA',v:u.clic==null?'':u.clic},
+   {id:'nt',l:'NOTA (OPCIONAL)',v:''},
+  ]),`<button class="btn gh2" id="eBack">Volver</button><button class="btn" style="flex:1" id="eSave">Guardar corte</button>`);
+ $('#eBack').onclick=()=>{closeDrawer();render()};
+ $('#eSave').onclick=async()=>{
+  if(!fv('c'))return toast('Ponle fecha al corte.');
+  const[b]=fv('br').split('|');
+  if(!marcaEscribible(b))return toast(avisoBR);
+  await persist(()=>dbGuardarCorteMC({corte:fv('c'),flujo:fv('fl'),brand:b,
+   envios:fv('en'),contactos:fv('co'),bandeja:fv('ba'),correos:fv('cr'),telefonos:fv('te'),
+   entregado:fv('eg'),abierto:fv('ab'),clic:fv('cl'),nota:fv('nt')}),'Corte de Manychat guardado');
+  closeDrawer();
+ };
+}
+
+function nuevoCorteCuenta(){
+ const u=CUENTA[0]||{};
+ drawer('Nuevo corte de la cuenta',
+  `<p class="refnota">Lo que reporta Instagram en «Estadísticas» para el periodo que elijas. Una fecha repetida actualiza el corte, no lo duplica.</p>`+
+  frm([
+   {id:'c',l:'FECHA DEL CORTE',type:'date',v:todayISO()},
+   {id:'di',l:'PERIODO EN DÍAS',type:'number',v:u.dias||30},
+   {id:'br',l:'MARCA · SERVIDOR',tag:'select',opts:OPT(BR_OPTS,(u.brand||'ESP')+'|'+servidoresDe(u.brand||'ESP')[0])},
+   {id:'rp',l:'REPRODUCCIONES',type:'number',v:u.repro},
+   {id:'es',l:'ESPECTADORES',type:'number',v:u.espect},
+   {id:'sg',l:'SEGUIDORES NETOS  ·  PUEDE SER NEGATIVO',type:'number',v:u.segNetos},
+   {id:'it',l:'INTERACCIONES',type:'number',v:u.inter},
+   {id:'hi',l:'HISTORIAS',type:'number',v:u.historias},
+   {id:'re',l:'REELS',type:'number',v:u.reels},
+   {id:'pu',l:'PUBLICACIONES',type:'number',v:u.posts},
+   {id:'ev',l:'EN VIVO',type:'number',v:u.envivo},
+   {id:'nt',l:'NOTA (OPCIONAL)',v:''},
+  ]),`<button class="btn gh2" id="eBack">Volver</button><button class="btn" style="flex:1" id="eSave">Guardar corte</button>`);
+ $('#eBack').onclick=()=>{closeDrawer();render()};
+ $('#eSave').onclick=async()=>{
+  if(!fv('c'))return toast('Ponle fecha al corte.');
+  const[b]=fv('br').split('|');
+  if(!marcaEscribible(b))return toast(avisoBR);
+  await persist(()=>dbGuardarCorteCuenta({corte:fv('c'),dias:fv('di'),brand:b,
+   repro:fv('rp'),espect:fv('es'),segNetos:fv('sg'),inter:fv('it'),historias:fv('hi'),
+   reels:fv('re'),posts:fv('pu'),envivo:fv('ev'),nota:fv('nt')}),'Corte de cuenta guardado');
+  closeDrawer();
+ };
+}
+
+/* Las cuentas por red. dbGuardarCuenta() llevaba desde la migración de
+   marcas en hub-api.js sin que nadie la llamara: el CLAUDE.md decía que se
+   editaban en el Brief y no era cierto, solo se veían. */
+function editarCuentas(id){
+ const m=marca(id),c=CUENTAS[id]||{};
+ const campos=[];
+ Object.keys(PF).forEach(k=>{
+  campos.push({id:'h_'+k,l:PF[k].n.toUpperCase()+' · CUENTA',v:(c[k]||{}).cuenta,ph:'@gtahub'});
+  campos.push({id:'u_'+k,l:PF[k].n.toUpperCase()+' · ENLACE',v:(c[k]||{}).url,ph:'https://…'});
+ });
+ drawer('Cuentas de '+m.nombre,
+  `<p class="refnota">El handle y el enlace de esta marca en cada red. Déjalo vacío si todavía no existe.</p>`+frm(campos),
+  `<button class="btn gh2" id="eBack">Volver</button><button class="btn" style="flex:1" id="eSave">Guardar cuentas</button>`);
+ $('#eBack').onclick=()=>{closeDrawer();render()};
+ $('#eSave').onclick=async()=>{
+  await persist(async()=>{
+   for(const k of Object.keys(PF))await dbGuardarCuenta(id,k,fv('h_'+k),fv('u_'+k));
+  },'Cuentas de '+m.nombre+' guardadas');
+  closeDrawer();
+ };
+}
 const ST_OPTS=[['borrador','Borrador'],['programada','Programada'],['publicada','Publicada']];
 const N15=[['1','1'],['2','2'],['3','3'],['4','4'],['5','5']];
 
@@ -635,6 +722,10 @@ function wire(){
  $$('[data-mode]').forEach(e=>e.onclick=()=>{pubMode=e.dataset.mode;render()});
  $$('[data-per]').forEach(e=>e.onclick=()=>{period=e.dataset.per;render()});
  $$('[data-sub]').forEach(e=>e.onclick=()=>{metSub=e.dataset.sub;render()});
+ $$('[data-metas]').forEach(e=>e.onclick=()=>editarMetas());
+ $$('[data-corte-mc]').forEach(e=>e.onclick=()=>nuevoCorteMC());
+ $$('[data-corte-ig]').forEach(e=>e.onclick=()=>nuevoCorteCuenta());
+ $$('[data-cuentas]').forEach(e=>e.onclick=()=>editarCuentas(e.dataset.cuentas));
  $$('[data-mon]').forEach(e=>e.onclick=()=>{selMonth=e.dataset.mon;render()});
  $$('[data-new]').forEach(e=>e.onclick=()=>newForm(e.dataset.new,view==='calendario'?selDay:null));
  $$('[data-day]').forEach(e=>e.onclick=()=>{selDay=e.dataset.day;render()});
@@ -920,7 +1011,7 @@ function vBrief(){
    <header><h3>${esc(m.nombre)}</h3>${puedeEditarBrief()?`<button class="chip" data-brief="${id}">EDITAR BRIEF</button>`:''}</header>
    <div class="bmeta meta">${esc(m.idioma)} · ${m.servidores.map(esc).join(' · ')}</div>
    ${cuerpo}
-   <div class="bcampo"><div class="lbl">CUENTAS</div>${redesDe(id)}</div>
+   <div class="bcampo"><div class="lbl" style="display:flex;align-items:center;gap:10px">CUENTAS${puedeEditarBrief()?`<button class="chip" data-cuentas="${id}">EDITAR</button>`:''}</div>${redesDe(id)}</div>
    ${b.actualizado?`<div class="meta" style="margin-top:10px">Actualizado ${dlabel((b.actualizado||'').slice(0,10))}${b.por?' por '+esc(b.por):''}</div>`:''}
   </div>`;
  };

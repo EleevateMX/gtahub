@@ -124,8 +124,17 @@ grant select, insert, update on public.gtahub_briefs  to anon, authenticated;
 -- ---------------------------------------------------------------------------
 -- 6) El rol 'mkt' para quien lleva marketing
 -- ---------------------------------------------------------------------------
+-- El CHECK se arma con los roles que YA existen en la tabla MAS los cuatro
+-- del hub. Antes era una lista fija de cuatro, y si el equipo tenia un rol
+-- con otro nombre (por ejemplo 'contenido') el ALTER fallaba con
+--   23514: ... is violated by some row
+-- y, como el SQL Editor envuelve el archivo entero en una transaccion, eso
+-- tiraba TODA la migracion: ni marcas, ni cuentas, ni brief. Una migracion
+-- no tiene por que opinar sobre los roles que ya usaba el equipo.
 do $$
-declare r record;
+declare
+  r record;
+  lista text;
 begin
   for r in
     select c.conname as nombre
@@ -138,10 +147,20 @@ begin
   loop
     execute format('alter table public.gtahub_usuarios drop constraint %I', r.nombre);
   end loop;
-end $$;
 
-alter table public.gtahub_usuarios
-  add constraint gtahub_usuarios_role_check check (role in ('ceo','dir','inv','mkt'));
+  select string_agg(quote_literal(v), ', ' order by v) into lista
+  from (
+    select distinct role as v
+    from public.gtahub_usuarios
+    where role is not null and length(trim(role)) > 0
+    union
+    select unnest(array['ceo','dir','inv','mkt'])
+  ) t;
+
+  execute format(
+    'alter table public.gtahub_usuarios add constraint gtahub_usuarios_role_check check (role in (%s))',
+    lista);
+end $$;
 
 commit;
 
@@ -171,6 +190,12 @@ select 'gtahub_cuentas con 15 filas (3 marcas x 5 redes)',
 union all
 select 'gtahub_briefs con una fila por marca',
   case when (select count(*) from public.gtahub_briefs) = 3 then 'ok' else 'FALTA' end
+union all
+select 'quién puede editar el Brief (rol mkt)',
+  coalesce(
+    (select string_agg(username, ', ' order by username)
+     from public.gtahub_usuarios where role = 'mkt'),
+    'NADIE todavía · dale el rol a quien lleve marketing con el UPDATE de abajo')
 union all
 select 'el rol mkt es válido',
   case when (select pg_get_constraintdef(oid) from pg_constraint

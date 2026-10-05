@@ -45,7 +45,10 @@ Cada marca tiene su propia cuenta en cada red: `gtahub_cuentas`
 Vista `brief`: la guía de voz de cada marca (público, tono, pilares, qué sí,
 qué no, referencias, CTA) en `gtahub_briefs`, una fila por marca.
 
-Lo edita solo el rol `mkt`. **Es un candado de interfaz, no de seguridad**:
+Lo edita solo el rol `mkt` (`supabase/rol-meded.sql` se lo da a MeDed). El rol
+hace doble trabajo: es el permiso y la etiqueta bajo el nombre en la barra
+lateral, así que `ROL_N` traduce los conocidos a algo legible (`mkt` →
+MARKETING) y deja pasar cualquier otro tal cual. **Es un candado de interfaz, no de seguridad**:
 todo el hub entra a Supabase con la misma llave anónima, así que la base no
 distingue quién escribe y RLS no puede frenarlo; quien abra la consola del
 navegador puede saltárselo. Sirve para que nadie lo toque por error. Para que

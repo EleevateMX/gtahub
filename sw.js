@@ -13,7 +13,7 @@
  * Al publicar cambios en el shell, sube VERSION: 'activate' borra las
  * cachés que no coincidan, incluida la 'gtahub-v2' del hub viejo.
  */
-const VERSION = '2026-10-05.2';
+const VERSION = '2026-10-05.3';
 const CACHE = 'gtahub-hub-' + VERSION;
 
 /* Lo mínimo para abrir sin red: shell, estilos, scripts, logo y el arte

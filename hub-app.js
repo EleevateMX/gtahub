@@ -70,7 +70,7 @@ function boot(){
 function enter(){
  $('#boot').classList.add('hide');$('#app').classList.remove('hide');
  const u=HUB.user||{name:'Equipo',role:''};
- $('#meName').textContent=u.name;$('#meRole').textContent=(u.role||'').toUpperCase();
+ $('#meName').textContent=u.name;$('#meRole').textContent=rolLabel(u.role);
  $('#meAv').textContent=u.name.slice(0,2).toUpperCase();
  pintarServidores();
  render();
@@ -873,6 +873,13 @@ function formRef(ref,id,tipo,volver){
    permiso de verdad, el login tiene que pasar a Supabase Auth y entonces
    RLS ve auth.uid(). */
 const ROL_BRIEF='mkt';
+/* El rol de gtahub_usuarios hace doble trabajo: es el permiso Y la etiqueta
+   que sale bajo tu nombre. 'mkt' como permiso esta bien; como etiqueta se
+   lee a medias. Cualquier rol que no este aqui se muestra tal cual, asi que
+   el equipo puede inventarse los suyos sin tocar codigo. */
+const ROL_N={ceo:'CEO',dir:'DIRECCIÓN',inv:'INVITADO',mkt:'MARKETING',
+ contenido:'CONTENIDO',editor:'EDICIÓN'};
+const rolLabel=r=>ROL_N[(r||'').trim().toLowerCase()]||(r||'').toUpperCase();
 const puedeEditarBrief=()=>((HUB.user&&HUB.user.role)||'').toLowerCase()===ROL_BRIEF;
 const CAMPOS_BRIEF=[
  ['publico','PÚBLICO','A quién le habla esta marca'],
@@ -919,8 +926,8 @@ function vBrief(){
  };
 
  const quien=puedeEditarBrief()
-  ? `<div class="meta">Puedes editar el brief: tu rol es <b>${esc(HUB.user.role)}</b>.</div>`
-  : `<div class="meta">Solo marketing (rol <b>${ROL_BRIEF}</b>) edita el brief. Tú lo ves en modo lectura.</div>`;
+  ? `<div class="meta">Puedes editar el brief: tu rol es <b>${esc(rolLabel(HUB.user.role))}</b>.</div>`
+  : `<div class="meta">Solo marketing (rol <b>${rolLabel(ROL_BRIEF)}</b>) edita el brief. Tú lo ves en modo lectura.</div>`;
 
  const ids=brand==='ALL'?MARCA_IDS:[normMarca(brand)];
  return hero(`<div style="margin-top:14px">${quien}</div>`)+aviso+

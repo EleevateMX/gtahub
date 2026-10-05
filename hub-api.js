@@ -89,7 +89,8 @@ function mapPost(r){
  return{id:r.id,t:r.title,brand:normMarca(r.brand),srv:r.srv||servidoresDe(r.brand)[0],pf,
   st:ST_DB[r.status]||'borrador',d:r.publish_date||'',h:r.publish_time||'',
   reach:r.views||0,eng:r.interactions||0,likes:r.likes||0,url:r.url||'',
-  thumb:r.thumb||THUMB_PF[pf],fmt:r.fmt||r.type||'post',owner:r.created_by||'—',
+  thumb:r.thumb||THUMB_PF[pf],thumbRaw:r.thumb||'',
+  fmt:r.fmt||r.type||'post',owner:r.created_by||'—',
   copy:r.copy_text||r.notes||'',chk:Array.isArray(r.chk)?r.chk:[],
   chkState:Array.isArray(r.chk_state)?r.chk_state:(Array.isArray(r.chk)?r.chk.map(()=>false):[])};
 }

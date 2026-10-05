@@ -77,9 +77,13 @@ contenido(paso, archivo, revisa, estado) as (
       else 'FALTA · hay '||(select count(*) from public.gtahub_publicaciones where status = 'publicado')||' de 13'
     end
   union all
-  select 17,'datos-sep-oct.sql','publicacion programada · «Farmeando Aura» de Xanthi',
-    case when (select count(*) from public.gtahub_publicaciones where status = 'programado') >= 1
-      then 'LISTO' else 'FALTA' end
+  -- Se revisa que la pieza EXISTA, no que siga programada: 'programado' es
+  -- un estado de paso, y en cuanto se publique este renglon diria FALTA
+  -- para siempre por algo que en realidad ya se hizo.
+  select 17,'datos-sep-oct.sql','la pieza «Farmeando Aura» · en cualquier estado',
+    coalesce((select 'LISTO · '||status from public.gtahub_publicaciones
+              where title ilike '%Farmeando Aura%' limit 1),
+             'FALTA · corre programada.sql')
 )
 select paso, archivo, revisa,
        case when ok then 'LISTO' else 'FALTA' end as estado

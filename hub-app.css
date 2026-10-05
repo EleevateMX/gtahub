@@ -251,7 +251,9 @@ tbody tr{cursor:pointer}tbody tr:hover td{background:var(--hover-soft)}
 #drawer .dh{padding:16px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;flex:none}
 #drawer .dh h3{font-size:13px;flex:1}
 #drawer .dc{padding:18px;overflow:auto;flex:1;display:flex;flex-direction:column;gap:15px}
-#drawer .df{padding:14px 18px;border-top:1px solid var(--line);display:flex;gap:8px;flex:none}
+/* flex-wrap: las fichas pasaron de 3 botones a 4 (Editar). Sin esto el
+   cuarto los aplasta a todos en vez de bajar a la siguiente linea. */
+#drawer .df{padding:14px 18px;border-top:1px solid var(--line);display:flex;gap:8px;flex:none;flex-wrap:wrap}
 .close{background:var(--panel);border:1px solid var(--line);color:var(--tx2);width:30px;height:30px;border-radius:7px;font-size:15px;line-height:1;flex:none}
 .close:hover{color:var(--tx);border-color:var(--line2)}
 .prev{width:100%;border-radius:10px;border:1px solid var(--line);display:block;background:var(--panel);max-height:300px;object-fit:cover;object-position:top}
@@ -732,6 +734,9 @@ button,.row,.trend,.cl,.gcard,.tk,.idea{touch-action:manipulation}
    imagen se quedan visibles y crecen a 40px: por debajo de eso no se
    aciertan con el pulgar. */
 @media(pointer:coarse){
+ /* Los botones del pie de la ficha son la forma principal de actuar sobre
+    una pieza; con 35px se fallan con el pulgar. */
+ #drawer .df .btn{min-height:44px}
  .refacts{opacity:1}
  .refadd{min-height:44px}
  .refacts .btn{min-height:40px;min-width:40px}

@@ -463,6 +463,72 @@ const avisoBR='BR todavía no se puede guardar: corre supabase/marcas-brief.sql.
    el responsable ni la descripcion: para corregir una palabra habia que
    borrar la tarjeta y volver a crearla. */
 const COL_OPTS=[['todo','Por hacer'],['prog','En progreso'],['done','Listo']];
+const ST_OPTS=[['borrador','Borrador'],['programada','Programada'],['publicada','Publicada']];
+const N15=[['1','1'],['2','2'],['3','3'],['4','4'],['5','5']];
+
+/* Editar una publicacion que ya existe.
+   La ficha solo dejaba reprogramar por prompt() y registrar metricas: el
+   titulo, el copy, el formato y el enlace no se podian tocar desde el hub. */
+function editarPublicacion(id){
+ const p=POSTS.find(x=>x.id===id);if(!p)return;
+ const volver=()=>openPost(id);
+ const sel=normMarca(p.brand)+'|'+(p.srv||servidoresDe(p.brand)[0]);
+ drawer('Editar publicación',frm([
+  {id:'t',l:'TÍTULO',v:p.t,ph:'Nombre de la pieza'},
+  {id:'br',l:'MARCA · SERVIDOR',tag:'select',opts:OPT(BR_OPTS,sel)},
+  {id:'pf',l:'PLATAFORMA',tag:'select',opts:OPT(PF_OPTS,p.pf)},
+  {id:'st',l:'ESTADO',tag:'select',opts:OPT(ST_OPTS,p.st)},
+  {id:'d',l:'FECHA',type:'date',v:p.d},
+  {id:'h',l:'HORA (OPCIONAL)',type:'time',v:p.h},
+  {id:'fmt',l:'FORMATO',v:p.fmt,ph:'Reel · 22 s · 1080×1920'},
+  {id:'copy',l:'TEXTO / COPY',tag:'textarea',rows:5,v:p.copy,ph:'Caption o texto de la publicación'},
+  {id:'url',l:'ENLACE (OPCIONAL)',v:p.url,ph:'https://instagram.com/…'},
+  {id:'thumb',l:'PORTADA · URL (OPCIONAL)',v:p.thumbRaw,ph:'Déjala vacía para usar el arte por plataforma'},
+  {id:'chk',l:'CHECKLIST (UNA POR LÍNEA)',tag:'textarea',rows:3,v:p.chk.join('\n')},
+ ]),`<button class="btn gh2" id="eBack">Volver</button><button class="btn" style="flex:1" id="eSave">Guardar cambios</button>`);
+ $('#eBack').onclick=volver;
+ $('#eSave').onclick=async()=>{
+  if(!fv('t'))return toast('Ponle un título.');
+  const[b,sv]=fv('br').split('|');
+  if(!marcaEscribible(b))return toast(avisoBR);
+  /* La checklist se puede reescribir sin perder lo ya palomeado: cada linea
+     que siga igual conserva su estado, y las nuevas entran sin marcar. */
+  const chk=fv('chk')?fv('chk').split('\n').map(x=>x.trim()).filter(Boolean):[];
+  const chkState=chk.map(c=>{const i=p.chk.indexOf(c);return i>=0?!!p.chkState[i]:false});
+  await persist(()=>dbPatchPost(p.id,{title:fv('t'),platform:DB_PF[fv('pf')]||'instagram',
+   status:DB_ST[fv('st')]||'borrador',publish_date:fv('d')||null,publish_time:fv('h')||null,
+   brand:marcaParaDB(b),srv:sv,fmt:fv('fmt')||null,copy_text:fv('copy')||null,
+   url:fv('url')||null,thumb:fv('thumb')||null,chk,chk_state:chkState}),'Publicación actualizada');
+  volver();
+ };
+}
+
+/* Editar una idea. Antes solo se podia aprobar, convertir o descartar. */
+function editarIdea(id){
+ const i=IDEAS.find(x=>x.id===id);if(!i)return;
+ const volver=()=>openIdea(id);
+ const sel=normMarca(i.brand)+'|'+servidoresDe(i.brand)[0];
+ drawer('Editar idea',frm([
+  {id:'t',l:'IDEA',v:i.t,ph:'Título corto'},
+  {id:'br',l:'MARCA · SERVIDOR',tag:'select',opts:OPT(BR_OPTS,sel)},
+  {id:'pf',l:'PLATAFORMA',tag:'select',opts:OPT(PF_OPTS,i.pf)},
+  {id:'imp',l:'IMPACTO (1-5)',tag:'select',opts:OPT(N15,String(i.imp))},
+  {id:'eff',l:'ESFUERZO (1-5)',tag:'select',opts:OPT(N15,String(i.eff))},
+  {id:'ds',l:'DESCRIPCIÓN',tag:'textarea',rows:4,v:i.d},
+  {id:'why',l:'POR QUÉ AHORA',tag:'textarea',rows:3,v:i.why},
+  {id:'copy',l:'COPY SUGERIDO',tag:'textarea',rows:5,v:i.copy},
+ ]),`<button class="btn gh2" id="eBack">Volver</button><button class="btn" style="flex:1" id="eSave">Guardar cambios</button>`);
+ $('#eBack').onclick=volver;
+ $('#eSave').onclick=async()=>{
+  if(!fv('t'))return toast('Ponle un título.');
+  const[b]=fv('br').split('|');
+  if(!marcaEscribible(b))return toast(avisoBR);
+  await persist(()=>dbPatchIdea(i.id,{title:fv('t'),brand:marcaParaDB(b),
+   platform:DB_PF[fv('pf')]||'instagram',imp:+fv('imp'),eff:+fv('eff'),
+   description:fv('ds')||null,rationale:fv('why')||null,copy_text:fv('copy')||null}),'Idea actualizada');
+  volver();
+ };
+}
 function editarTarea(id){
  const t=TASKS.find(x=>x.id===id);if(!t)return;
  const volver=()=>openTask(id);
@@ -612,11 +678,10 @@ function openPost(id){const p=POSTS.find(x=>x.id===id);if(!p)return;const done=p
  ${p.copy?`<div><div class="lbl" style="margin-bottom:8px">TEXTO DE LA PUBLICACIÓN</div><div class="copybox">${p.copy}</div></div>`:''}
  ${p.chk.length?`<div><div class="lbl" style="margin-bottom:10px;display:flex;justify-content:space-between">CHECKLIST<span id="chkNum" style="color:var(--crimson-tx)">${done}/${p.chkState.length}</span></div><div class="tr mini" style="margin-bottom:12px"><i id="chkProg" style="width:${done/p.chkState.length*100}%"></i></div><div class="chkl">${p.chk.map((c,i)=>`<label><input type="checkbox" data-chk="${p.id}:${i}" ${p.chkState[i]?'checked':''}><span>${c}</span></label>`).join('')}</div></div>`:''}
  ${bloqueRefs('publicacion',p.id)}`,
- `<button class="btn gh2" id="pCopy">Copiar texto</button>${p.st!=='publicada'?`<button class="btn gh2" id="pDate">Reprogramar</button><button class="btn" style="flex:1" id="pPub">Marcar publicada</button>`:`<button class="btn" style="flex:1" id="pMet">Registrar métricas</button>`}<button class="btn gh2" id="pDel" title="Eliminar">✕</button>`);
+ `<button class="btn gh2" id="pEdit">Editar</button><button class="btn gh2" id="pCopy">Copiar texto</button>${p.st!=='publicada'?`<button class="btn" style="flex:1" id="pPub">Marcar publicada</button>`:`<button class="btn" style="flex:1" id="pMet">Registrar métricas</button>`}<button class="btn gh2" id="pDel" title="Eliminar">✕</button>`);
  setTimeout(()=>{
   const c=$('#pCopy');if(c)c.onclick=()=>{navigator.clipboard&&navigator.clipboard.writeText(p.copy||p.t);toast('Texto copiado al portapapeles')};
-  const d=$('#pDate');if(d)d.onclick=()=>{const nd=prompt('Nueva fecha (AAAA-MM-DD):',p.d||todayISO());if(!nd)return;
-   persist(()=>dbPatchPost(p.id,{publish_date:nd,status:'programado'}),'Publicación reprogramada al '+dlabel(nd));closeDrawer()};
+  const pe=$('#pEdit');if(pe)pe.onclick=()=>editarPublicacion(p.id);
   const pb=$('#pPub');if(pb)pb.onclick=()=>{persist(()=>dbPatchPost(p.id,{status:'publicado',publish_date:p.d||todayISO()}),'Marcada como publicada');closeDrawer()};
   const pm=$('#pMet');if(pm)pm.onclick=()=>{const r=prompt('Alcance (views):',p.reach||'');if(r===null)return;
    const e2=prompt('Interacciones:',p.eng||'');if(e2===null)return;
@@ -654,8 +719,9 @@ function openIdea(id){const i=IDEAS.find(x=>x.id===id);if(!i)return;
  ${i.copy?`<div><div class="lbl" style="margin-bottom:8px">COPY SUGERIDO</div><div class="copybox">${i.copy}</div></div>`:''}
  <div style="display:flex;gap:18px"><div style="flex:1"><div class="lbl" style="margin-bottom:7px">IMPACTO ${i.imp}/5</div><div class="pips">${[1,2,3,4,5].map(n=>`<i class="${n<=i.imp?'f':''}"></i>`).join('')}</div></div><div style="flex:1"><div class="lbl" style="margin-bottom:7px">ESFUERZO ${i.eff}/5</div><div class="pips e">${[1,2,3,4,5].map(n=>`<i class="${n<=i.eff?'f':''}"></i>`).join('')}</div></div></div>
  ${bloqueRefs('idea',i.id)}`,
- `${i.copy?'<button class="btn gh2" id="iCopy">Copiar copy</button>':''}${i.st!=='aprobada'?'<button class="btn gh2" id="iOk">Aprobar</button>':''}<button class="btn" style="flex:1" id="iConv">Convertir en publicación</button><button class="btn gh2" id="iDel" title="Descartar">✕</button>`);
+ `<button class="btn gh2" id="iEdit">Editar</button>${i.copy?'<button class="btn gh2" id="iCopy">Copiar copy</button>':''}${i.st!=='aprobada'?'<button class="btn gh2" id="iOk">Aprobar</button>':''}<button class="btn" style="flex:1" id="iConv">Convertir en publicación</button><button class="btn gh2" id="iDel" title="Descartar">✕</button>`);
  setTimeout(()=>{
+  const ie=$('#iEdit');if(ie)ie.onclick=()=>editarIdea(i.id);
   const c=$('#iCopy');if(c)c.onclick=()=>{navigator.clipboard&&navigator.clipboard.writeText(i.copy);toast('Copy copiado')};
   const ok=$('#iOk');if(ok)ok.onclick=()=>{persist(()=>dbPatchIdea(i.id,{status:'aprobada'}),'Idea aprobada');closeDrawer()};
   const cv=$('#iConv');if(cv)cv.onclick=()=>{

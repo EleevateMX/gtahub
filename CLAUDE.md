@@ -178,7 +178,9 @@ obliga al equipo a fijar su contraseña una vez.
 - Nada de localStorage/sessionStorage para datos: la sesión vive en memoria
   (login por visita). La única clave guardada es `gtahub.tema`.
 - Toda escritura con `persist()` para mantener datos frescos y toasts coherentes.
-- Los formularios de creación se renderizan en el drawer (`newForm` en hub-app.js).
+- Los formularios de creación se renderizan en el drawer (`newForm` en hub-app.js),
+  y los de edición en `editarPublicacion/editarTarea/editarIdea`. Las tres fichas
+  llevan botón «Editar»: todo campo que se puede crear se puede corregir después.
 - Thumbs: si la publicación no tiene `thumb` (URL), se usa un arte por plataforma
   (`THUMB_PF` en hub-api.js).
 

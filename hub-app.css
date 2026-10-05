@@ -309,6 +309,7 @@ tbody tr{cursor:pointer}tbody tr:hover td{background:var(--hover-soft)}
  /* Los medidores de cuenta y Manychat necesitan el ancho completo: a dos
     columnas las etiquetas se parten y el numero queda pegado. */
  .gmet{grid-template-columns:minmax(0,1fr)}
+ .seg.metsub{width:100%}
  .cl .mdot{width:6px;height:6px;border-radius:50%}
  #tabbar{display:grid;position:fixed;left:0;right:0;bottom:0;height:72px;background:rgba(15,15,26,.97);border-top:1px solid var(--line);grid-template-columns:repeat(6,1fr);align-items:center;z-index:30}
  #tabbar button{display:flex;flex-direction:column;align-items:center;gap:5px;font:700 8px Inter;letter-spacing:1px;text-transform:uppercase;color:var(--tx3);background:none;border:0;padding:8px 0;min-height:48px}
@@ -352,6 +353,12 @@ tbody tr{cursor:pointer}tbody tr:hover td{background:var(--hover-soft)}
 .mcemb{margin-left:auto;display:flex;gap:14px;flex-wrap:wrap}
 /* La nota del pie puede ser larga; .meta va en nowrap por defecto. */
 .mcpie .meta{white-space:normal}
+/* Sub-pestanas de Metricas */
+.seg.metsub{width:340px;max-width:100%;margin-bottom:15px}
+/* El embudo necesita mas aire que las barras normales: cada tramo lleva
+   su etiqueta y su porcentaje debajo. */
+.bars.embudo{height:150px}
+.bars.embudo .b span{font-size:9px;line-height:1.3}
 .tr.mini i{display:block;height:100%;background:var(--crimson);border-radius:3px;transition:width .4s}
 .who{display:flex;align-items:center;gap:6px}
 .av.xs{width:18px;height:18px;font-size:7.5px}

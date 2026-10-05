@@ -48,6 +48,10 @@ const MANYCHAT=[];
 /* Cortes de las estadisticas de la cuenta (no de una pieza), mas reciente
    primero. Lo llena supabase/cuenta.sql. */
 const CUENTA=[];
+/* Detalle del flujo de Manychat: cada mensaje y el CTR de cada boton.
+   Lo llena supabase/manychat-detalle.sql. */
+const MC_PASOS=[];
+const MC_BOTONES=[];
 /* Cuentas de cada marca en cada red: {ESP:{ig:{cuenta,url}},…}. Lo llena
    hubLoad desde gtahub_cuentas; queda vacío si la migración no ha corrido. */
 const CUENTAS={};

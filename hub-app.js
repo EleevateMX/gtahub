@@ -2,7 +2,7 @@
 let pubSort={k:'d',dir:-1},sideOpen=true,undoFn=null;
 let brand='ALL',view='inicio',selDay=todayISO(),selMonth=todayISO().slice(0,7),
     pubFilter='todas',pfFilter=null,pubMode='tabla',taskFilter='todas',
-    ideaFilter='todas',ideaSort='impacto',period='30';
+    ideaFilter='todas',ideaSort='impacto',period='30',metSub='contenido';
 const byBrand=a=>brand==='ALL'?a:a.filter(x=>normMarca(x.brand)===brand);
 const toast=(m,undo)=>{const t=$('#toast');undoFn=undo||null;t.innerHTML='<span>'+m+'</span>'+(undo?'<button class="btn gh2 sm" id="undoBtn">Deshacer</button>':'');t.classList.add('on');
  if(undo)$('#undoBtn').onclick=async()=>{await undoFn();undoFn=null;t.classList.remove('on');render();toast('Cambio deshecho')};
@@ -332,6 +332,58 @@ function cuentaBloque(){
    <div class="meta" style="margin-top:10px">Interacciones del periodo <b style="color:var(--tx)">${fmt(hoy.inter)}</b>${hoy.nota?' · '+esc(hoy.nota):''}</div>
   </div></div>`;
 }
+/* Seccion de Manychat: los numeros del corte, el embudo de entrada, el
+   recorrido mensaje por mensaje y donde decide la gente. Cada pieza se pinta
+   solo si hay datos; sin la migracion de detalle, salen los numeros y un
+   aviso, nunca una tabla inventada. */
+function panelManychat(){
+ const cs=byBrand(MANYCHAT), lista=cs.length?cs:MANYCHAT;
+ if(!lista.length) return emptyState('Corre supabase/manychat.sql para traer los cortes del flujo.','grafica');
+ const hoy=lista[0],ayer=lista[1]||null;
+ const porC=c=>c&&c.contactos?(c.envios/c.contactos).toFixed(2):'—';
+
+ /* Embudo: del primer mensaje, cuantos lo reciben, lo abren y tocan boton. */
+ const entrada=MC_PASOS[0]||null;
+ const embudo=entrada?[['ENVIADO',entrada.enviado,null],
+   ['ENTREGADO',Math.round(entrada.enviado*(entrada.entregado??0)/100),entrada.entregado],
+   ['ABIERTO',Math.round(entrada.enviado*(entrada.abierto??0)/100),entrada.abierto],
+   ['CLIC',Math.round(entrada.enviado*(entrada.clic??0)/100),entrada.clic]]:[];
+
+ const maxP=Math.max(1,...MC_PASOS.map(p=>p.enviado));
+ const grupos={};
+ MC_BOTONES.forEach(b=>{(grupos[b.paso]=grupos[b.paso]||[]).push(b)});
+
+ return `<div class="g4">
+  ${kpi('CONTACTOS ÚNICOS',fmt(hoy.contactos),ayer?mcDelta(hoy.contactos,ayer.contactos):'Último corte')}
+  ${kpi('ENVÍOS DEL FLUJO',fmt(hoy.envios),ayer?mcDelta(hoy.envios,ayer.envios):'Último corte')}
+  ${kpi('BANDEJA DE ENTRADA',fmt(hoy.bandeja),ayer?mcDelta(hoy.bandeja,ayer.bandeja):'Conversaciones abiertas')}
+  ${kpi('ENVÍOS POR CONTACTO',porC(hoy),ayer?`antes ${porC(ayer)}`:'Veces que se disparó por persona')}</div>
+
+ ${embudo.length?`<div class="card" style="margin-top:15px"><header><h3>ENTRADA DEL FLUJO</h3>
+  <span class="lbl">${esc(entrada.titulo||entrada.paso)} · ${fmt(entrada.enviado)} PERSONAS</span></header>
+  <div class="bars embudo">${embudo.map(([l,v,pct])=>`<div class="b" data-tip="${l} · ${fmt(v)}${pct!=null?' ('+pct+'%)':''}">
+    <div class="bstack"><i style="height:${Math.max(6,v/Math.max(1,entrada.enviado)*100)}%;background:var(--crimson)"></i></div>
+    <span>${l}<b style="display:block;color:var(--tx);font-size:12px;margin-top:3px">${pct!=null?pct+'%':fmt(v)}</b></span></div>`).join('')}</div></div>`:''}
+
+ ${MC_PASOS.length?`<div class="card" style="margin-top:15px;padding:16px 16px 6px"><header><h3>RECORRIDO COMPLETO</h3>
+  <span class="meta">Todos los pasos con envío</span></header>
+  <div class="tblwrap"><table><thead><tr><th style="width:38%">PASO</th><th style="text-align:right">ENVIADO</th>
+   <th style="text-align:right">ENTREGADO</th><th style="text-align:right">ABIERTO</th><th style="text-align:right">CLIC</th></tr></thead><tbody>
+  ${MC_PASOS.map(p=>`<tr><td><b>${esc(p.paso)}</b><div class="meta" style="margin-top:3px;white-space:normal">${esc(p.titulo||'')}</div></td>
+   <td style="text-align:right"><b>${fmt(p.enviado)}</b><div class="tr mini" style="margin-top:5px"><i style="width:${p.enviado/maxP*100}%;background:var(--crimson)"></i></div></td>
+   <td style="text-align:right">${p.entregado==null?'—':p.entregado+'%'}</td>
+   <td style="text-align:right">${p.abierto==null?'—':p.abierto+'%'}</td>
+   <td style="text-align:right">${p.clic==null?'<span class="meta">sin botón</span>':`<span class="${p.clic>=45?'up':''}">${p.clic}%</span>`}</td></tr>`).join('')}
+  </tbody></table></div></div>`:`<div class="card" style="margin-top:15px"><div class="meta">Corre supabase/manychat-detalle.sql para ver el recorrido paso por paso.</div></div>`}
+
+ ${MC_BOTONES.length?`<div class="card" style="margin-top:15px"><header><h3>DÓNDE DECIDEN</h3>
+  <span class="lbl">CTR POR BOTÓN</span></header>
+  ${Object.keys(grupos).map(p=>`<div style="margin-bottom:14px"><div class="lbl" style="margin-bottom:8px">${esc(p)}</div>
+   ${grupos[p].map(b=>`<div class="meter"><div class="lg"><span class="meta" style="white-space:normal">${esc(b.boton)}</span>
+     <span><b style="color:var(--tx)">${b.ctr==null?'—':b.ctr+'%'}</b></span></div>
+     <div class="tr"><i style="width:${Math.max(3,(b.ctr||0))}%;background:var(--crimson)"></i></div></div>`).join('')}</div>`).join('')}
+  </div>`:''}`;
+}
 function mcBloque(){
  if(!MANYCHAT.length)return'';
  const cs=byBrand(MANYCHAT);
@@ -352,7 +404,7 @@ function mcBloque(){
    ${emb.length?`<span class="mcemb">${emb.map(([l,v])=>`<span class="lbl">${l} <b style="color:var(--tx)">${v}%</b></span>`).join('')}</span>`:''}
   </div></div>`;
 }
-function vMet(){
+function metContenido(){
  const ps=periodPosts(period),prev=byBrand(POSTS).filter(p=>p.st==='publicada'&&p.d&&p.d>=daysAgoISO(+period*2)&&p.d<daysAgoISO(+period));
  const reach=ps.reduce((a,p)=>a+p.reach,0),eng=ps.reduce((a,p)=>a+p.eng,0);
  const reachPrev=prev.reduce((a,p)=>a+p.reach,0);
@@ -369,7 +421,7 @@ function vMet(){
  const pfAll=['tt','ig','fb','dc','em'].map(k=>[k,ps.filter(p=>p.pf===k).reduce((a,p)=>a+p.reach,0)]).sort((a,b)=>b[1]-a[1]);
  const maxPf=Math.max(1,...pfAll.map(x=>x[1]));
  const top=[...ps].filter(p=>p.reach).sort((a,b)=>b.reach-a.reach).slice(0,6);
- return hero()+`<div class="fbar"><div class="seg sm" style="width:230px">${['7','30','90'].map(k=>`<button class="${period===k?'act':''}" data-per="${k}">${k} DÍAS</button>`).join('')}</div><span class="meta" style="margin-left:auto">Pasa el cursor por las barras para ver el detalle</span><button class="btn sm" data-new="informe">Exportar CSV</button></div>
+ return `<div class="fbar"><div class="seg sm" style="width:230px">${['7','30','90'].map(k=>`<button class="${period===k?'act':''}" data-per="${k}">${k} DÍAS</button>`).join('')}</div><span class="meta" style="margin-left:auto">Pasa el cursor por las barras para ver el detalle</span><button class="btn sm" data-new="informe">Exportar CSV</button></div>
  <div class="g4">
  ${kpi('ALCANCE',reach?fmt(reach):'—',delta===null?'Sin periodo previo comparable':(delta>=0?`<span class="up">▲ ${delta}%</span>`:`<span class="dn">▼ ${Math.abs(delta)}%</span>`)+' vs. periodo previo')}
  ${kpi('INTERACCIONES',eng?fmt(eng):'—','Suma del periodo')}
@@ -378,7 +430,20 @@ function vMet(){
  <div class="g2"><div class="card"><header><h3>ALCANCE POR ${period==='7'?'DÍA':period==='30'?'TRAMO':'MES'}</h3><span class="lbl">■ VIEWS REGISTRADAS</span></header>${reach?`<div class="bars">${buckets.map(([r,l])=>`<div class="b" data-tip="${l} · ${fmt(r)} de alcance"><div class="bstack"><i style="height:${Math.max(4,r/maxB*100)}%;background:var(--crimson)"></i></div><span>${l}</span></div>`).join('')}</div>`:emptyState('Captura views en tus publicaciones para ver la gráfica.','grafica')}</div>
  <div class="card"><header><h3>ALCANCE POR PLATAFORMA</h3><span class="lbl">${period} DÍAS</span></header>${reach?pfAll.map(([k,v])=>`<div class="meter"><div class="lg">${pill(k)}<span><b style="color:var(--tx)">${v?fmt(v):'—'}</b>${reach?' · '+Math.round(v/reach*100)+'%':''}</span></div><div class="tr"><i style="width:${v/maxPf*100}%;background:var(--${k})"></i></div></div>`).join(''):emptyState('Ninguna plataforma registró alcance en este periodo.','plataformas')}</div></div>
  <div class="card" style="padding:16px 16px 6px"><header><h3>TOP DE PUBLICACIONES</h3><span class="meta">Clic para ver la ficha</span></header>${top.length?`<div class="tblwrap"><table><thead><tr><th style="width:40%">PUBLICACIÓN</th><th>MARCA</th><th>PLATAFORMA</th><th style="text-align:right">ALCANCE</th><th style="text-align:right">INTERACC.</th><th style="text-align:right">TASA</th></tr></thead><tbody>
- ${top.map(p=>`<tr data-post="${p.id}"><td><div style="display:flex;align-items:center;gap:11px"><img class="thumb" src="${p.thumb}" alt=""><b>${p.t}</b></div></td><td><span class="tag ${marca(p.brand).clase}">${(p.srv||p.brand).toUpperCase()}</span></td><td>${pill(p.pf)}</td><td style="text-align:right"><b>${fmt(p.reach)}</b></td><td style="text-align:right">${fmt(p.eng)}</td><td style="text-align:right"><span class="up">${(p.eng/p.reach*100).toFixed(1)}%</span></td></tr>`).join('')}</tbody></table></div>`:emptyState('Todavía no hay publicaciones con métricas en este periodo.','top')}</div>`+cuentaBloque()+mcBloque();
+ ${top.map(p=>`<tr data-post="${p.id}"><td><div style="display:flex;align-items:center;gap:11px"><img class="thumb" src="${p.thumb}" alt=""><b>${p.t}</b></div></td><td><span class="tag ${marca(p.brand).clase}">${(p.srv||p.brand).toUpperCase()}</span></td><td>${pill(p.pf)}</td><td style="text-align:right"><b>${fmt(p.reach)}</b></td><td style="text-align:right">${fmt(p.eng)}</td><td style="text-align:right"><span class="up">${(p.eng/p.reach*100).toFixed(1)}%</span></td></tr>`).join('')}</tbody></table></div>`:emptyState('Todavía no hay publicaciones con métricas en este periodo.','top')}</div>`;
+}
+
+/* Metricas se reparte en tres paneles: el contenido propio, la cuenta de
+   Instagram y Manychat. Van como sub-pestanas y no como vistas del menu
+   porque una octava pestana en la barra movil deja etiquetas de 6px. */
+const MET_SUBS=[['contenido','CONTENIDO'],['cuenta','CUENTA'],['manychat','MANYCHAT']];
+function vMet(){
+ const barra=`<div class="seg sm metsub">${MET_SUBS.map(([k,l])=>
+   `<button class="${metSub===k?'act':''}" data-sub="${k}">${l}</button>`).join('')}</div>`;
+ const panel=metSub==='cuenta'?(cuentaBloque()||emptyState('Corre supabase/cuenta.sql para ver los cortes de la cuenta.','grafica'))
+   :metSub==='manychat'?panelManychat()
+   :metContenido();
+ return hero()+barra+panel;
 }
 /* ---------- FORMULARIOS ---------- */
 const OPT=(o,sel)=>o.map(([v,n])=>`<option value="${v}"${v===sel?' selected':''}>${n}</option>`).join('');
@@ -462,6 +527,7 @@ function wire(){
  $$('[data-is]').forEach(e=>e.onclick=()=>{ideaSort=e.dataset.is;render()});
  $$('[data-mode]').forEach(e=>e.onclick=()=>{pubMode=e.dataset.mode;render()});
  $$('[data-per]').forEach(e=>e.onclick=()=>{period=e.dataset.per;render()});
+ $$('[data-sub]').forEach(e=>e.onclick=()=>{metSub=e.dataset.sub;render()});
  $$('[data-mon]').forEach(e=>e.onclick=()=>{selMonth=e.dataset.mon;render()});
  $$('[data-new]').forEach(e=>e.onclick=()=>newForm(e.dataset.new,view==='calendario'?selDay:null));
  $$('[data-day]').forEach(e=>e.onclick=()=>{selDay=e.dataset.day;render()});

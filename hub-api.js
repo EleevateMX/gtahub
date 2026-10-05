@@ -122,7 +122,7 @@ function mapTrend(r){
  return{id:r.id,t:r.title,rel:r.relevance||'media',note:r.insight||'',src:r.source_url||'',d:(r.created_at||'').slice(0,10)};
 }
 async function hubLoad(){
- const[pubs,tasks,ideas,trends,metas,cuentas,briefs,manychat,cuenta]=await Promise.all([
+ const[pubs,tasks,ideas,trends,metas,cuentas,briefs,manychat,cuenta,mcPasos,mcBotones]=await Promise.all([
   api('gtahub_publicaciones?select=*&order=publish_date.desc.nullslast&limit=500'),
   api('gtahub_tareas?select=*&order=created_at.asc&limit=300'),
   api('gtahub_ideas?select=*&order=created_at.desc&limit=300'),
@@ -132,12 +132,23 @@ async function hubLoad(){
   apiOpc('gtahub_briefs?select=*'),
   apiOpc('gtahub_manychat?select=*&order=corte.desc&limit=60'),
   apiOpc('gtahub_cuenta?select=*&order=corte.desc&limit=36'),
+  apiOpc('gtahub_manychat_pasos?select=*&order=corte.desc,orden.asc&limit=200'),
+  apiOpc('gtahub_manychat_botones?select=*&order=corte.desc,orden.asc&limit=200'),
  ]);
  /* Que gtahub_cuentas responda es la señal de que la migración de marcas
     ya corrió; de eso dependen BR y el valor que se escribe en brand. */
  HUB.migrado=Array.isArray(cuentas);
  MANYCHAT.length=0;(manychat||[]).forEach(r=>MANYCHAT.push(mapCorte(r)));
  CUENTA.length=0;(cuenta||[]).forEach(r=>CUENTA.push(mapCuenta(r)));
+ /* Solo el corte mas reciente: el detalle es una foto, no una serie. */
+ const cPaso=(mcPasos||[])[0]&&(mcPasos||[])[0].corte;
+ MC_PASOS.length=0;(mcPasos||[]).filter(r=>r.corte===cPaso).forEach(r=>MC_PASOS.push({
+  orden:+r.orden||0,paso:r.paso||'',titulo:r.titulo||'',enviado:+r.enviado||0,
+  entregado:r.entregado==null?null:+r.entregado,abierto:r.abierto==null?null:+r.abierto,
+  clic:r.clic==null?null:+r.clic}));
+ const cBot=(mcBotones||[])[0]&&(mcBotones||[])[0].corte;
+ MC_BOTONES.length=0;(mcBotones||[]).filter(r=>r.corte===cBot).forEach(r=>MC_BOTONES.push({
+  orden:+r.orden||0,paso:r.paso||'',boton:r.boton||'',ctr:r.ctr==null?null:+r.ctr}));
  POSTS.length=0;pubs.forEach(r=>POSTS.push(mapPost(r)));
  TASKS.length=0;tasks.forEach(r=>TASKS.push(mapTask(r)));
  IDEAS.length=0;ideas.filter(r=>r.status!=='descartada'&&r.status!=='convertida').forEach(r=>IDEAS.push(mapIdea(r)));
